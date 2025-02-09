@@ -1,0 +1,17 @@
+FROM rocker/r-ver:4.4.2
+
+# Install renv, a package manager for R
+# https://rocker-project.org/use/extending.html#install2.r
+RUN install2.r --error --skipinstalled --ncpus -1 renv
+
+WORKDIR /app
+
+# Install renv dependencies
+COPY renv.lock renv.lock
+RUN mkdir renv
+COPY renv/settings.json renv/settings.json
+COPY renv/activate.R renv/activate.R
+COPY .Rprofile .Rprofile
+RUN R -e "renv::restore()"
+
+COPY . /app
