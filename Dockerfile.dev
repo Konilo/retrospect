@@ -1,8 +1,18 @@
 FROM rocker/r-ver:4.4.2
 
+# The Rglpk R package, a dependency of the fPortfolio R package, requires
+# libglpk40
+# The gsl R package, a dependency of the fPortfolio R package, requires
+# libgsl27
+# The Rsymphony, a dependency of the the PortfolioAnalytics R package, requires
+# coinor-symphony
+# RUN apt-get update && apt-get install -y \
+    # libglpk40 \
+    # libgsl27 \
+    # coinor-symphony
+
 # Install renv, a package manager for R
-# https://rocker-project.org/use/extending.html#install2.r
-RUN install2.r --error --skipinstalled --ncpus -1 renv
+RUN R -e "install.packages('renv', version='1.1.1')"
 
 WORKDIR /app
 
