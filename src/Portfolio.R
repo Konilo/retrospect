@@ -3,6 +3,7 @@ library(lubridate)
 library(R6)
 library(plotly)
 library(GGally)
+source("src/Asset.R")
 
 
 Portfolio <- R6Class("Portfolio",
@@ -14,16 +15,18 @@ Portfolio <- R6Class("Portfolio",
         merged_assets = NULL,
         assets_adjusted_return_colnames = NULL,
         metrics = NULL,
+        reference_asset_ticker = NULL,
         initialize = function(
             weighted_assets_list,
             from = NULL, to = NULL,
-            risk_free_rate
+            risk_free_rate,
+            reference_asset_ticker
         ) {
             stopifnot(
                 sum(sapply(weighted_assets_list, function(x) x[[1]])) == 1
             )
             stopifnot(
-                all(sapply(weighted_assets_list, function(x) x[[1]]) >= 0)
+                all(sapply(weighted_assets_list, function(x) x[[1]]) > 0)
             )
             stopifnot(
                 is.null(from) | as_date(from) == from,
@@ -34,6 +37,7 @@ Portfolio <- R6Class("Portfolio",
             self$from <- from
             self$to <- to
             self$risk_free_rate <- risk_free_rate
+            self$reference_asset_ticker <- reference_asset_ticker
             self$merged_assets <- private$merge_assets(self)
             self$assets_adjusted_return_colnames <- grep(
                 ".Return", colnames(self$merged_assets),
@@ -60,13 +64,13 @@ Portfolio <- R6Class("Portfolio",
                     ,
                     c(
                         self$assets_adjusted_return_colnames,
-                        "weighted_return"
+                        "portfolio_weighted_return"
                     ),
                     with = FALSE
                 ],
                 measure.vars = c(
                     self$assets_adjusted_return_colnames,
-                    "weighted_return"
+                    "portfolio_weighted_return"
                 ),
                 variable.name = "asset",
                 value.name = "daily_return"
@@ -74,7 +78,7 @@ Portfolio <- R6Class("Portfolio",
                 ,
                 `:=`(
                     asset = gsub(
-                        "weighted_return",
+                        "portfolio_weighted_return",
                         "Portfolio",
                         gsub(".Return", "", asset, fixed = TRUE)
                     ),
@@ -97,10 +101,100 @@ Portfolio <- R6Class("Portfolio",
                     yaxis = list(title = "Density"),
                     legend = list(title = "")
                 )
+        },
+        plot_returns_over_time = function() {
+            plot_data <- melt(
+                self$merged_assets[
+                    ,
+                    c(
+                        self$assets_adjusted_return_colnames,
+                        "portfolio_weighted_return",
+                        self$weighted_assets_list[[1]][[2]]$colnames_map[["date"]]
+                    ),
+                    with = FALSE
+                ],
+                measure.vars = c(
+                    self$assets_adjusted_return_colnames,
+                    "portfolio_weighted_return"
+                ),
+                id.vars = self$weighted_assets_list[[1]][[2]]$colnames_map[["date"]],
+                variable.name = "asset",
+                value.name = "daily_return"
+            )[
+                ,
+                `:=`(
+                    asset = gsub(
+                        "portfolio_weighted_return",
+                        "Portfolio",
+                        gsub(".Return", "", asset, fixed = TRUE)
+                    ),
+                    daily_return = daily_return * 100
+                )
+            ]
+            gg <- ggplot(
+                plot_data,
+                aes(
+                    x = get(self$weighted_assets_list[[1]][[2]]$colnames_map[["date"]]),
+                    y = daily_return,
+                    color = asset
+                )
+            ) +
+                geom_path(stat = "identity") +
+                facet_grid(asset ~ .) +
+                theme_minimal() +
+                labs(x = "", y = "Daily Return (%)")
+            ggplotly(gg) |>
+                layout(
+                    title = "Portfolio Assets Daily Returns Over Time",
+                    xaxis = list(title = ""),
+                    yaxis = list(title = ""),
+                    showlegend = FALSE
+                )
+        },
+        plot_pf_vs_reference_performance = function() {
+            # Compute cumulative returns
+            plot_data <- self$merged_assets[
+                ,
+                c(
+                    "date",
+                    "portfolio_weighted_return",
+                    "reference_asset_return"
+                ),
+                with = FALSE
+            ][
+                ,
+                `:=`(
+                    cumulative_portfolio_return = (cumprod(
+                        1 + portfolio_weighted_return
+                    ) - 1) * 100,
+                    cumulative_reference_asset_return = (cumprod(
+                        1 + reference_asset_return
+                    ) - 1) * 100
+                )
+            ]
+
+            plot_ly(
+                plot_data,
+                type = "scatter",
+                mode = "lines",
+                x = ~date,
+                y = ~cumulative_portfolio_return,
+                name = "Portfolio"
+            ) |>
+                add_trace(
+                    y = ~cumulative_reference_asset_return,
+                    name = "Reference Asset"
+                ) |>
+                layout(
+                    title = "Portfolio vs. Reference Asset Performance",
+                    xaxis = list(title = ""),
+                    yaxis = list(title = "Cumulative Return (%)")
+                )
         }
     ),
     private = list(
         merge_assets = function(self) {
+            # Merge PF assets
             merged_assets <- Reduce(
                 function(dt1, dt2) {
                     merge(dt1, dt2, by = "date", all = FALSE)
@@ -108,31 +202,86 @@ Portfolio <- R6Class("Portfolio",
                 lapply(self$weighted_assets_list, function(x) x[[2]]$ohlcv)
             )
 
-            merged_assets <- merged_assets[
+            # Merge reference asset
+            reference_asset <- Asset$new(self$reference_asset_ticker)
+            reference_asset_adjusted_closes <- reference_asset$ohlcv[
                 ,
-                weighted_return := rowSums(
-                    .SD * sapply(self$weighted_assets_list, function(x) x[[1]])
+                c(
+                    reference_asset$colnames_map[["date"]],
+                    reference_asset$colnames_map[["adjusted_close"]]
                 ),
-                .SDcols = grep(
-                    ".Return", colnames(merged_assets),
-                    value = TRUE
-                )
+                with = FALSE
             ]
+            setnames(
+                reference_asset_adjusted_closes,
+                reference_asset$colnames_map[["adjusted_close"]],
+                "reference_asset_adjusted_close"
+            )
+            merged_assets <- merge(
+                merged_assets,
+                reference_asset_adjusted_closes,
+                by = reference_asset$colnames_map[["date"]],
+                all = FALSE
+            )
 
+            # Filter by date, if requested
             if (!is.null(self$from)) {
                 merged_assets <- merged_assets[
                     get(
-                        self$weighted_assets_list[[1]][[2]]$colnames_map[["date"]]
+                        self$weighted_assets_list[[1]][[2]]$colnames_map[[
+                            "date"
+                        ]]
                     ) >= self$from,
                 ]
             }
             if (!is.null(self$to)) {
                 merged_assets <- merged_assets[
                     get(
-                        self$weighted_assets_list[[1]][[2]]$colnames_map[["date"]]
+                        self$weighted_assets_list[[1]][[2]]$colnames_map[[
+                            "date"
+                        ]]
                     ) <= self$to,
                 ]
             }
+
+            # Recompute the PF assets' returns, as the merge (inner join)
+            # deletes a fraction of the close price variation on dates where
+            # some assets are missing.
+            pf_asset_objects <- lapply(
+                self$weighted_assets_list,
+                function(x) x[[2]]
+            )
+            for (asset in pf_asset_objects) {
+                merged_assets[
+                    ,
+                    paste0(asset$ticker, ".Return") := (
+                        get(asset$colnames_map[["adjusted_close"]]) /
+                            shift(
+                                get(asset$colnames_map[["adjusted_close"]]),
+                                1
+                            ) - 1
+                    )
+                ]
+            }
+
+            # Compute the weighted PF return
+            merged_assets[
+                ,
+                portfolio_weighted_return := rowSums(
+                    .SD * sapply(self$weighted_assets_list, function(x) x[[1]])
+                ),
+                .SDcols = grep(".Return", colnames(merged_assets), value = TRUE)
+            ]
+
+            # Compute the reference asset's returns
+            merged_assets[
+                ,
+                reference_asset_return := (
+                    reference_asset_adjusted_close /
+                        shift(reference_asset_adjusted_close, 1) - 1
+                )
+            ]
+            merged_assets <- merged_assets[-1]
 
             message(
                 "Merged assets cover ",
@@ -149,13 +298,13 @@ Portfolio <- R6Class("Portfolio",
                     ,
                     c(
                         self$assets_adjusted_return_colnames,
-                        "weighted_return"
+                        "portfolio_weighted_return"
                     ),
                     with = FALSE
                 ],
                 measure.vars = c(
                     self$assets_adjusted_return_colnames,
-                    "weighted_return"
+                    "portfolio_weighted_return"
                 ),
                 variable.name = "asset",
                 value.name = "daily_return"
@@ -163,7 +312,7 @@ Portfolio <- R6Class("Portfolio",
                 ,
                 `:=`(
                     asset = gsub(
-                        "weighted_return",
+                        "portfolio_weighted_return",
                         "Portfolio",
                         gsub(".Return", "", asset, fixed = TRUE)
                     ),
@@ -189,30 +338,3 @@ Portfolio <- R6Class("Portfolio",
         }
     )
 )
-
-
-# source("src/Asset.R")
-
-# cw8_pa <- Asset$new("CW8.PA")
-# # cw8_pa$ohlcv
-# # cw8_pa$plot_ohlc()
-# # cw8_pa$plot_returns_distribution()
-# # cw8_pa$test_normality()
-# # cw8_pa$plot_annual_metrics()
-# btc_usd <- Asset$new("BTC-USD")
-# gc_f <- Asset$new("GC=F")
-# # gc_f$plot_ohlc()
-# # gc_f$plot_annual_metrics()
-# ese_pa <- Asset$new("ESE.PA")
-
-# wal <- list(
-#     c(.85, cw8_pa), c(.05, btc_usd), c(.05, gc_f), c(.05, ese_pa)
-# )
-# wal <- list(
-#     c(.9, cw8_pa), c(.05, btc_usd), c(.05, gc_f)
-# )
-
-# pf <- Portfolio$new(wal)
-# # str(pf$merged_assets)
-# # pf$plot_returns_correlation()
-# pf$plot_returns_distribution("assets")

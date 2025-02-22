@@ -163,13 +163,3 @@ Asset <- R6Class("Asset",
         }
     )
 )
-
-# cw8_pa <- Asset$new("CW8.PA")
-# cw8_pa$ohlcv
-# cw8_pa$annual_metrics
-# cw8_pa$plot_ohlc()
-
-# btc_usd <- Asset$new("BTC-USD")
-# btc_usd$ohlcv
-# btc_usd$annual_metrics
-# btc_usd$plot_ohlc()
