@@ -11,68 +11,119 @@ Asset <- R6Class("Asset",
         data_source = NULL,
         colnames_map = NULL,
         ohlcv = NULL,
-        annual_metrics = NULL,
         initialize = function(ticker, data_source = "yahoo") {
             self$ticker <- ticker
             self$data_source <- data_source
             self$colnames_map <- private$map_colnames(self)
             self$ohlcv <- private$get_ohlcv(self)
-            self$annual_metrics <- private$get_annual_metrics(self)
+        },
+        get_plot_data = function(data_type, time_unit, date_range = NULL) {
+            if (!data_type %in% c("ohlcv", "return_per_time_unit")) {
+                stop("Invalid data_type")
+            }
+            if (!time_unit %in% c("day", "week", "month", "year")) {
+                stop("Invalid time_unit")
+            }
+            if (!is.null(date_range) && data_type != "ohlcv") {
+                stop(
+                    "date_range should only be provided if data_type is 'ohlcv'"
+                )
+            }
 
-        },
-        plot_ohlc = function() {
-            plot_ly(
-                data = self$ohlcv,
-                type = "ohlc",
-                x = ~get(self$colnames_map[["date"]]),
-                open = ~get(self$colnames_map[["open"]]),
-                close = ~get(self$colnames_map[["close"]]),
-                high = ~get(self$colnames_map[["high"]]),
-                low = ~get(self$colnames_map[["low"]])
-            ) |>
-                layout(
-                    title = paste0(self$ticker, " (", self$data_source, ")"),
-                    xaxis = list(
-                        rangeslider = list(visible = FALSE),
-                        title = ""
+            plot_data <- copy(self$ohlcv)
+            if (time_unit == "day") {
+                setnames(
+                    plot_data,
+                    old = unlist(self$colnames_map),
+                    new = names(self$colnames_map)
+                )
+                plot_data[, return := return * 100]
+            } else if (time_unit %chin% c("week", "month", "year")) {
+                plot_data <- plot_data[
+                    ,
+                    .(
+                        open = .SD[1, get(self$colnames_map[["open"]])],
+                        high = .SD[, max(get(self$colnames_map[["high"]]))],
+                        low = .SD[, min(get(self$colnames_map[["low"]]))],
+                        adjusted_close = .SD[
+                            .N,
+                            get(self$colnames_map[["adjusted_close"]])
+                        ]
+                    ),
+                    by = .(
+                        date = floor_date(
+                            get(self$colnames_map[["date"]]),
+                            unit = time_unit,
+                            week_start = 1
+                        )
                     )
-                )
+                ]
+            }
+
+            if (data_type == "ohlcv") {
+                if (!is.null(date_range)) {
+                    plot_data[date %between% date_range]
+                } else {
+                    plot_data
+                }
+            } else if (data_type == "return_per_time_unit") {
+                plot_data[
+                    ,
+                    .(
+                        date,
+                        return = (adjusted_close / shift(adjusted_close) - 1) *
+                            100
+                    )
+                ][-1] # Remove the 1st row because it has a NA return
+            }
         },
-        plot_returns_distribution = function() {
-            plot_ly(
-                data = self$ohlcv,
-                type = "histogram",
-                x = ~get(self$colnames_map[["return"]]) * 100
-            ) |>
-                layout(
-                    title = paste0(
-                        self$ticker, " (", self$data_source,
-                        ") - Returns Distribution"
-                    ),
-                    xaxis = list(title = "Daily Return (%)"),
-                    yaxis = list(title = "# Days")
-                )
-        },
-        test_normality = function() {
-            shapiro.test(
-                self$ohlcv[, get(self$colnames_map[["return"]])]
-            )$p.value < 0.05
-        },
-        plot_annual_metrics = function() {
-            plot_ly(
-                data = self$annual_metrics,
-                type = "bar",
-                x = ~year,
-                y = ~annual_return * 100
-            ) |>
-                layout(
-                    title = paste0(
-                        self$ticker, " (", self$data_source,
-                        ") - Annual Returns"
-                    ),
-                    xaxis = list(title = "Year"),
-                    yaxis = list(title = "Annual Return (%)")
-                )
+        get_daily_returns_distrib = function(date_range) {
+            returns <- self$get_plot_data(
+                "ohlcv",
+                "day",
+                date_range
+            )[, .(date, return)]
+
+            mean <- mean(returns[, return]) |> signif(digits = 3)
+            sd <- sd(returns[, return]) |> signif(digits = 3)
+            normality_test <- shapiro.test(returns[, return])$p.value |>
+                signif(digits = 3)
+
+            n_bins <- 100
+            bin_edges <- seq(
+                returns[, min(return)],
+                returns[, max(return)],
+                length.out = n_bins + 1
+            )
+
+            plotly_x_bins <- list(
+                start = bin_edges[1],
+                end = bin_edges[length(bin_edges)],
+                size = diff(bin_edges)[1]
+            )
+
+            # 1st, pnorm computes cumulative probabilities at each bin edge
+            # via the CDF of the normal distribution
+            # 2nd, compute bin probabilities
+            # = differences between successive cumulative probabilities
+            bin_frequencies <- pnorm(bin_edges, mean, sd) |> diff()
+
+            # vector of bin centers
+            bin_centers <- (bin_edges[-length(bin_edges)] + bin_edges[-1]) / 2
+
+            normal_return_freqs <- data.table(
+                return = bin_centers,
+                frequency = bin_frequencies * 100
+            )
+
+            list(
+                "returns" = returns,
+                "mean" = mean,
+                "sd" = sd,
+                "normality_test" = normality_test,
+                "normal_return_freqs" = normal_return_freqs,
+                "plotly_x_bins" = plotly_x_bins
+            )
         }
     ),
     private = list(
@@ -100,8 +151,8 @@ Asset <- R6Class("Asset",
 
             only_close_subset <- ohlcv[
                 get(self$colnames_map[["open"]]) == get(self$colnames_map[["high"]]) &
-                get(self$colnames_map[["high"]]) == get(self$colnames_map[["low"]]) &
-                get(self$colnames_map[["low"]]) == get(self$colnames_map[["close"]]),
+                    get(self$colnames_map[["high"]]) == get(self$colnames_map[["low"]]) &
+                    get(self$colnames_map[["low"]]) == get(self$colnames_map[["close"]]),
             ]
             if ((n_days_w_only_close <- only_close_subset[, .N]) > 0) {
                 warning(
@@ -141,25 +192,6 @@ Asset <- R6Class("Asset",
             }
 
             ohlcv
-        },
-        get_annual_metrics = function(self) {
-            self$ohlcv[
-                ,
-                .(
-                    annual_return = (
-                        .SD[
-                            .N, get(self$colnames_map[["adjusted_close"]])
-                        ] - .SD[1, get(self$colnames_map[["adjusted_close"]])]
-                    ) / .SD[1, get(self$colnames_map[["adjusted_close"]])],
-                    annual_daily_returns_sd = sd(
-                        .SD[, get(self$colnames_map[["adjusted_close"]])]
-                    ),
-                    annual_daily_returns_mean = mean(
-                        .SD[, get(self$colnames_map[["adjusted_close"]])]
-                    )
-                ),
-                year(get(self$colnames_map[["date"]]))
-            ]
         }
     )
 )
