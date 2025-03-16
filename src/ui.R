@@ -3,22 +3,22 @@ library(bslib)
 library(plotly)
 library(lubridate)
 
+
 ui <- page_navbar(
     title = "Asset Analysis",
     id = "nav",
     navbar_options = navbar_options(
-        bg = "#2D89C8",
-        theme = "auto"
+        bg = "#000000",
+        theme = "dark"
     ),
-
     sidebar = sidebar(
         title = "Parameters",
         conditionalPanel(
-            "input.nav === 'Retrospective Analysis'",
+            "input.nav === 'Retrospective Asset Analysis'",
             textInput(
-                "retro_ana__ticker",
+                "retro_asset_ana__ticker",
                 "Ticker",
-                value = "AAPL"
+                value = "CW8.PA"
             ),
             helpText(
                 "Financial data from ",
@@ -29,13 +29,16 @@ ui <- page_navbar(
                 )
             ),
             selectInput(
-                "retro_ana__price_plot_type",
+                "retro_asset_ana__price_plot_type",
                 "Price Plot Type",
-                choices = list("Candles" = "candles", "Close" = "close"),
+                choices = list(
+                    "Candles" = "candles",
+                    "Closing Prices" = "close"
+                ),
                 selected = "candles"
             ),
             selectInput(
-                "retro_ana__time_unit",
+                "retro_asset_ana__time_unit",
                 "Time Unit",
                 choices = list(
                     "Day" = "day",
@@ -46,36 +49,87 @@ ui <- page_navbar(
                 selected = "day"
             ),
             dateRangeInput(
-                "retro_ana__daily_returns_distrib_date_range",
+                "retro_asset_ana__daily_returns_distrib_date_range",
                 "Daily Returns Distribution Date Range",
                 start = today() %m-% years(50),
                 end = today(),
                 weekstart = 1
             ),
-            actionButton("retro_ana__submit", "Submit")
+            numericInput(
+                "retro_asset_ana__risk_free_rate",
+                "Risk-free rate",
+                3,
+                min = 0,
+                max = 100
+            ),
+            helpText("Annual rate in %"),
+            selectInput(
+                "retro_asset_ana__trading_days_per_year",
+                "Trading Days Per Year",
+                choices = list(
+                    "252 Days (Equities)" = 252,
+                    "365 Days (Forex, Crypto)" = 365
+                ),
+                selected = 252
+            ),
+            actionButton("retro_asset_ana__submit", "Submit")
+        ),
+        conditionalPanel(
+            "input.nav === 'Retrospective Portfolio Analysis'",
+            p("Portfolio assets"),
+            DTOutput("retro_pf_ana__pf_assets"),
+            fluidRow(
+                column(6, actionButton("retro_pf_ana__add_asset", "Add")),
+                column(6, actionButton("retro_pf_ana__remove_asset", "Remove"))
+            ),
+            numericInput(
+                "retro_pf_ana__risk_free_rate",
+                "Risk-free rate",
+                3,
+                min = 0,
+                max = 100
+            ),
+            helpText("Annual rate in %"),
+            selectInput(
+                "retro_pf_ana__trading_days_per_year",
+                "Trading Days Per Year",
+                choices = list(
+                    "252 Days (Equities)" = 252,
+                    "365 Days (Forex, Crypto)" = 365
+                ),
+                selected = 252
+            ),
+            actionButton("retro_pf_ana__submit", "Submit")
         ),
         conditionalPanel(
             "input.nav === 'Prospective Analysis'",
             p("Prospective Analysis sidebar")
         )
     ),
-
     nav_panel(
-        title = "Retrospective Analysis", # aka retro_ana
+        title = "Retrospective Asset Analysis", # aka retro_asset_ana
         card(
-            card_header("Asset Price"),
+            card_header("Prices"),
             full_screen = TRUE,
             fill = FALSE,
-            card_body(plotlyOutput("retro_ana__price_plot"))
+            card_body(plotlyOutput("retro_asset_ana__price_plot"))
         ),
         card(
-            card_header("Asset Return Per Time Unit"),
+            card_header("Return Per Time Unit"),
             full_screen = TRUE,
             fill = FALSE,
-            card_body(plotlyOutput("retro_ana__return_per_time_unit_plot"))
+            card_body(plotlyOutput(
+                "retro_asset_ana__return_per_time_unit_plot"
+            ))
         ),
         card(
-            card_header("Daily Asset Returns Distribution"),
+            card_header("Daily Close Price Drawdowns"),
+            full_screen = TRUE,
+            fill = FALSE,
+            card_body(plotlyOutput("retro_asset_ana__drawdown_plot"))
+        ),
+        card(
+            card_header("Daily Returns Analysis"),
             full_screen = TRUE,
             fill = FALSE,
             card_body(
@@ -85,7 +139,7 @@ ui <- page_navbar(
                         min_height = "75px",
                         fill = FALSE,
                         value = textOutput(
-                            "retro_ana__returns_distribution_mean"
+                            "retro_asset_ana__returns_distrib_mean"
                         )
                     ),
                     value_box(
@@ -93,27 +147,36 @@ ui <- page_navbar(
                         min_height = "75px",
                         fill = FALSE,
                         value = textOutput(
-                            "retro_ana__returns_distribution_sd"
+                            "retro_asset_ana__returns_distrib_sd"
                         )
                     ),
                     value_box(
                         title = "Shapiro-Wilk Normality Test",
                         min_height = "75px",
                         value = textOutput(
-                            "retro_ana__returns_distribution_normality_test"
+                            "retro_asset_ana__returns_distrib_normality_test"
+                        )
+                    ),
+                    value_box(
+                        title = "Sharpe Ratio",
+                        min_height = "75px",
+                        value = textOutput(
+                            "retro_asset_ana__returns_distrib_sharpe_ratio"
                         )
                     )
                 ),
-                plotlyOutput("retro_ana__returns_distribution_plot")
+                plotlyOutput("retro_asset_ana__returns_distrib_plot")
             )
         )
     ),
-
     nav_panel(
-        title = "Prospective Analysis", # aka pro_ana
+        title = "Retrospective Portfolio Analysis", # aka retro_pf_ana
         p("Second page content.")
     ),
-
+    nav_panel(
+        title = "Prospective Analysis", # aka pro_ana
+        p("Third page content.")
+    ),
     nav_spacer(),
     nav_menu(
         title = "Links",
@@ -121,9 +184,9 @@ ui <- page_navbar(
         nav_item(
             tags$a(
                 "GitHub",
-                href = "https://github.com/Konilo/modern-portfolio-theory"
-            ),
-            target = "_blank"
+                href = "https://github.com/Konilo/modern-portfolio-theory",
+                target = "_blank"
+            )
         )
     )
 )

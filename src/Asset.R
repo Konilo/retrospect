@@ -18,7 +18,10 @@ Asset <- R6Class("Asset",
             self$ohlcv <- private$get_ohlcv(self)
         },
         get_plot_data = function(data_type, time_unit, date_range = NULL) {
-            if (!data_type %in% c("ohlcv", "return_per_time_unit")) {
+            # Checks
+            if (
+                !data_type %in% c("ohlcv", "return_per_time_unit", "drawdown")
+            ) {
                 stop("Invalid data_type")
             }
             if (!time_unit %in% c("day", "week", "month", "year")) {
@@ -26,8 +29,11 @@ Asset <- R6Class("Asset",
             }
             if (!is.null(date_range) && data_type != "ohlcv") {
                 stop(
-                    "date_range should only be provided if data_type is 'ohlcv'"
+                    "date_range can only be applied if data_type is 'ohlcv'"
                 )
+            }
+            if (data_type == "drawdown" && time_unit != "day") {
+                stop("Drawdowns are only be computed on a daily basis")
             }
 
             plot_data <- copy(self$ohlcv)
@@ -71,22 +77,49 @@ Asset <- R6Class("Asset",
                     ,
                     .(
                         date,
-                        return = (adjusted_close / shift(adjusted_close) - 1) *
-                            100
+                        return = (
+                            (adjusted_close / shift(adjusted_close) - 1) * 100
+                        ) |> signif(digits = 3)
                     )
                 ][-1] # Remove the 1st row because it has a NA return
+            } else if (data_type == "drawdown") {
+                plot_data[
+                    ,
+                    .(
+                        date,
+                        drawdown = (
+                            (
+                                1 - adjusted_close / cummax(adjusted_close)
+                            ) * 100
+                        ) |> signif(digits = 3)
+                    )
+                ][-1] # Idem
             }
         },
-        get_daily_returns_distrib = function(date_range) {
+        analyze_returns = function(
+            date_range,
+            risk_free_rate,
+            n_trading_days_per_year
+        ) {
             returns <- self$get_plot_data(
                 "ohlcv",
                 "day",
                 date_range
             )[, .(date, return)]
 
-            mean <- mean(returns[, return]) |> signif(digits = 3)
-            sd <- sd(returns[, return]) |> signif(digits = 3)
+            mean <- mean(returns[, return])
+            sd <- sd(returns[, return])
             normality_test <- shapiro.test(returns[, return])$p.value |>
+                signif(digits = 3)
+
+            excess_return_sd <- sd(
+                returns[, return] - risk_free_rate / n_trading_days_per_year
+            )
+            sharpe_ratio <- (
+                (
+                    mean - risk_free_rate / n_trading_days_per_year
+                ) / excess_return_sd
+            ) |>
                 signif(digits = 3)
 
             n_bins <- 100
@@ -118,11 +151,12 @@ Asset <- R6Class("Asset",
 
             list(
                 "returns" = returns,
-                "mean" = mean,
-                "sd" = sd,
+                "mean" = mean |> signif(digits = 3),
+                "sd" = sd |> signif(digits = 3),
                 "normality_test" = normality_test,
                 "normal_return_freqs" = normal_return_freqs,
-                "plotly_x_bins" = plotly_x_bins
+                "plotly_x_bins" = plotly_x_bins,
+                "sharpe_ratio" = sharpe_ratio
             )
         }
     ),
