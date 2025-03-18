@@ -141,10 +141,11 @@ output$retro_asset_ana__returns_distrib_plot <- renderPlotly({
         ) |>
         layout(
             title = paste0(
-                retro_asset_ana__asset()$ticker, ", ",
-                retro_asset_ana__returns_analysis()$returns[, min(date)], " to ",
+                retro_asset_ana__asset()$ticker, " (",
+                retro_asset_ana__returns_analysis()$returns[, min(date)],
+                " to ",
                 retro_asset_ana__returns_analysis()$returns[, max(date)],
-                ", N = ", retro_asset_ana__returns_analysis()$returns[, .N]
+                ", N = ", retro_asset_ana__returns_analysis()$returns[, .N], ")"
             ),
             xaxis = list(title = "Daily Return (%)"),
             yaxis = list(title = "Frequency (%)"),

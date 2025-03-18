@@ -2,6 +2,7 @@ library(shiny)
 library(bslib)
 library(plotly)
 library(lubridate)
+library(DT)
 
 
 ui <- page_navbar(
@@ -79,8 +80,16 @@ ui <- page_navbar(
             p("Portfolio assets"),
             DTOutput("retro_pf_ana__pf_assets"),
             fluidRow(
-                column(6, actionButton("retro_pf_ana__add_asset", "Add")),
-                column(6, actionButton("retro_pf_ana__remove_asset", "Remove"))
+                column(5, actionButton("retro_pf_ana__add_asset", "Add")),
+                # Instead of 12, any value between 1 and 12 would work
+                column(12, actionButton("retro_pf_ana__remove_asset", "Remove"))
+            ),
+            dateRangeInput(
+                "retro_pf_ana__date_range",
+                "Date Range",
+                start = today() %m-% years(7),
+                end = today(),
+                weekstart = 1
             ),
             numericInput(
                 "retro_pf_ana__risk_free_rate",
@@ -171,7 +180,14 @@ ui <- page_navbar(
     ),
     nav_panel(
         title = "Retrospective Portfolio Analysis", # aka retro_pf_ana
-        p("Second page content.")
+        card(
+            card_header("Portfolio Assets Price Evolution"),
+            full_screen = TRUE,
+            fill = FALSE,
+            card_body(plotlyOutput(
+                "retro_pf_ana__assets_price_comp_plot"
+            ))
+        )
     ),
     nav_panel(
         title = "Prospective Analysis", # aka pro_ana
