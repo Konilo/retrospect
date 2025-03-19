@@ -47,7 +47,7 @@ ui <- page_navbar(
                     "Month" = "month",
                     "Year" = "year"
                 ),
-                selected = "day"
+                selected = "month"
             ),
             dateRangeInput(
                 "retro_asset_ana__daily_returns_distrib_date_range",
@@ -80,6 +80,7 @@ ui <- page_navbar(
             p("Portfolio assets"),
             DTOutput("retro_pf_ana__pf_assets"),
             fluidRow(
+                # 5 to let enough space for the other button
                 column(5, actionButton("retro_pf_ana__add_asset", "Add")),
                 # Instead of 12, any value between 1 and 12 would work
                 column(12, actionButton("retro_pf_ana__remove_asset", "Remove"))
@@ -138,7 +139,15 @@ ui <- page_navbar(
             card_body(plotlyOutput("retro_asset_ana__drawdown_plot"))
         ),
         card(
-            card_header("Daily Returns Analysis"),
+            card_header("Daily Returns Distribution Per Time Unit"),
+            full_screen = TRUE,
+            fill = FALSE,
+            card_body(plotlyOutput(
+                "retro_asset_ana__returns_distrib_per_time_unit_plot"
+            ))
+        ),
+        card(
+            card_header("Daily Returns Detailed Analysis"),
             full_screen = TRUE,
             fill = FALSE,
             card_body(

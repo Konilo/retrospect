@@ -15,12 +15,17 @@ Asset <- R6Class("Asset",
             self$ticker <- ticker
             self$data_source <- data_source
             self$colnames_map <- private$map_colnames(self)
-            self$ohlcv <- private$get_ohlcv(self)
+            self$ohlcv <- private$fetch_daily_ohlcv(self)
         },
         get_plot_data = function(data_type, time_unit, date_range = NULL) {
             # Checks
             if (
-                !data_type %in% c("ohlcv", "return_per_time_unit", "drawdown")
+                !data_type %in% c(
+                    "ohlcv",
+                    "return_per_time_unit",
+                    "drawdown",
+                    "mean_sd_over_time"
+                )
             ) {
                 stop("Invalid data_type")
             }
@@ -36,65 +41,17 @@ Asset <- R6Class("Asset",
                 stop("Drawdowns are only be computed on a daily basis")
             }
 
-            plot_data <- copy(self$ohlcv)
-            if (time_unit == "day") {
-                setnames(
-                    plot_data,
-                    old = unlist(self$colnames_map),
-                    new = names(self$colnames_map)
+            switch(
+                data_type,
+                "ohlcv" = private$get_ohlcv_data(self, time_unit, date_range),
+                "return_per_time_unit" = private$get_return_per_time_unit_data(
+                    self, time_unit
+                ),
+                "drawdown" = private$get_drawdown_data(self),
+                "mean_sd_over_time" = private$get_mean_sd_over_time_data(
+                    self, time_unit
                 )
-                plot_data[, return := return * 100]
-            } else if (time_unit %chin% c("week", "month", "year")) {
-                plot_data <- plot_data[
-                    ,
-                    .(
-                        open = .SD[1, get(self$colnames_map[["open"]])],
-                        high = .SD[, max(get(self$colnames_map[["high"]]))],
-                        low = .SD[, min(get(self$colnames_map[["low"]]))],
-                        adjusted_close = .SD[
-                            .N,
-                            get(self$colnames_map[["adjusted_close"]])
-                        ]
-                    ),
-                    by = .(
-                        date = floor_date(
-                            get(self$colnames_map[["date"]]),
-                            unit = time_unit,
-                            week_start = 1
-                        )
-                    )
-                ]
-            }
-
-            if (data_type == "ohlcv") {
-                if (!is.null(date_range)) {
-                    plot_data[date %between% date_range]
-                } else {
-                    plot_data
-                }
-            } else if (data_type == "return_per_time_unit") {
-                plot_data[
-                    ,
-                    .(
-                        date,
-                        return = (
-                            (adjusted_close / shift(adjusted_close) - 1) * 100
-                        ) |> signif(digits = 3)
-                    )
-                ][-1] # Remove the 1st row because it has a NA return
-            } else if (data_type == "drawdown") {
-                plot_data[
-                    ,
-                    .(
-                        date,
-                        drawdown = (
-                            (
-                                1 - adjusted_close / cummax(adjusted_close)
-                            ) * 100
-                        ) |> signif(digits = 3)
-                    )
-                ][-1] # Idem
-            }
+            )
         },
         analyze_returns = function(
             date_range,
@@ -173,7 +130,7 @@ Asset <- R6Class("Asset",
                 "return" = paste0(self$ticker, ".Return")
             )
         },
-        get_ohlcv = function(self) {
+        fetch_daily_ohlcv = function(self) {
             ohlcv <- getSymbols(
                 self$ticker,
                 src = self$data_source,
@@ -184,9 +141,15 @@ Asset <- R6Class("Asset",
                 as.data.table(keep.rownames = "date")
 
             only_close_subset <- ohlcv[
-                get(self$colnames_map[["open"]]) == get(self$colnames_map[["high"]]) &
-                    get(self$colnames_map[["high"]]) == get(self$colnames_map[["low"]]) &
-                    get(self$colnames_map[["low"]]) == get(self$colnames_map[["close"]]),
+                get(self$colnames_map[["open"]]) == get(
+                    self$colnames_map[["high"]]
+                ) &
+                    get(self$colnames_map[["high"]]) == get(
+                        self$colnames_map[["low"]]
+                    ) &
+                    get(self$colnames_map[["low"]]) == get(
+                        self$colnames_map[["close"]]
+                    ),
             ]
             if ((n_days_w_only_close <- only_close_subset[, .N]) > 0) {
                 warning(
@@ -226,6 +189,106 @@ Asset <- R6Class("Asset",
             }
 
             ohlcv
+        },
+        get_ohlcv_data = function(self, time_unit, date_range) {
+            plot_data <- copy(self$ohlcv)
+            if (time_unit == "day") {
+                setnames(
+                    plot_data,
+                    old = unlist(self$colnames_map),
+                    new = names(self$colnames_map)
+                )
+                plot_data[, return := return * 100]
+            } else if (time_unit %chin% c("week", "month", "year")) {
+                plot_data <- plot_data[
+                    ,
+                    .(
+                        open = .SD[1, get(self$colnames_map[["open"]])],
+                        high = .SD[, max(get(self$colnames_map[["high"]]))],
+                        low = .SD[, min(get(self$colnames_map[["low"]]))],
+                        adjusted_close = .SD[
+                            .N,
+                            get(self$colnames_map[["adjusted_close"]])
+                        ]
+                    ),
+                    by = .(
+                        date = floor_date(
+                            get(self$colnames_map[["date"]]),
+                            unit = time_unit,
+                            week_start = 1
+                        )
+                    )
+                ]
+            }
+
+            if (!is.null(date_range)) {
+                plot_data[date %between% date_range]
+            } else {
+                plot_data
+            }
+        },
+        get_return_per_time_unit_data = function(self, time_unit) {
+            plot_data <- private$get_ohlcv_data(self, time_unit, NULL)
+            plot_data[
+                ,
+                .(
+                    date,
+                    return = (
+                        (adjusted_close / shift(adjusted_close) - 1) * 100
+                    ) |> signif(digits = 3)
+                )
+            ][-1] # Remove the 1st row because it has a NA return
+        },
+        get_drawdown_data = function(self) {
+            plot_data <- private$get_ohlcv_data(self, "day", NULL)
+            plot_data[
+                ,
+                .(
+                    date,
+                    drawdown = (
+                        (
+                            1 - adjusted_close / cummax(adjusted_close)
+                        ) * 100
+                    ) |> signif(digits = 3)
+                )
+            ][-1] # Remove the 1st row because it has a NA drawdown
+        },
+        get_mean_sd_over_time_data = function(self, time_unit) {
+            plot_data <- copy(self$ohlcv)
+            plot_data[
+                ,
+                self$colnames_map[["return"]] := get(
+                    self$colnames_map[["return"]]
+                ) * 100
+            ]
+            plot_data <- plot_data[
+                ,
+                .(
+                    mean_daily_return = mean(
+                        get(self$colnames_map[["return"]])
+                    ),
+                    sd_daily_return = sd(get(self$colnames_map[["return"]]))
+                ),
+                by = .(
+                    date = floor_date(
+                        get(self$colnames_map[["date"]]),
+                        unit = time_unit,
+                        week_start = 1
+                    )
+                )
+            ]
+            plot_data[
+                ,
+                .(
+                    date,
+                    mean_minus_2_sd_daily_return = mean_daily_return - 2 *
+                        sd_daily_return,
+                    mean_daily_return,
+                    sd_daily_return,
+                    mean_plus_2_sd_daily_return = mean_daily_return + 2 *
+                        sd_daily_return
+                )
+            ]
         }
     )
 )
