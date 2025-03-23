@@ -104,98 +104,17 @@ output$retro_pf_ana__assets_price_comp_plot <- renderPlotly({
         )
 })
 
-library(xtable)
-output$retro_pf_ana__assets_cor_matrix <- renderUI({
-    cor_matrix <- retro_pf_ana__pf()$analyze_assets_correlation()[[
-        "cor_matrix"
-    ]]
-
-    M <- print(
-        xtable(
-            cor_matrix,
-            align = rep("c", ncol(cor_matrix) + 1),
-            digits = 3
-        ),
-        floating = FALSE,
-        tabular.environment = "array",
-        comment = FALSE,
-        print.results = FALSE
-    )
-    html <- paste0("$$", M, "$$")
-    list(withMathJax(HTML(html)))
-})
-
-output$retro_pf_ana__assets_cor_pval_matrix <- renderUI({
-    cor_pval_matrix <- retro_pf_ana__pf()$analyze_assets_correlation()[[
-        "cor_pval_matrix"
-    ]]
-
-    M <- print(
-        xtable(
-            cor_pval_matrix,
-            align = rep("c", ncol(cor_pval_matrix) + 1),
-            digits = 20
-        ),
-        floating = FALSE,
-        tabular.environment = "array",
-        comment = FALSE,
-        print.results = FALSE
-    )
-    html <- paste0("$$", M, "$$")
-    list(withMathJax(HTML(html)))
-})
-
 output$retro_pf_ana__assets_cor_splom <- renderPlotly({
-    asset_daily_returns <- retro_pf_ana__pf()$analyze_assets_correlation()[[
+    plot_data <- retro_pf_ana__pf()$get_plot_data(
         "assets_daily_returns"
-    ]]
+    )[, -"date"]
 
-    dimensions_list <- lapply(
-        colnames(asset_daily_returns)[-1],
-        function(col) {
-            list(
-                label = col,
-                values = asset_daily_returns[[col]]
-            )
-        }
-    )
 
-    p <- plot_ly(
-        data = asset_daily_returns,
-        type = "splom",
-        dimensions = dimensions_list,
-        text = ~date
+    ggpairs(
+        plot_data,
+        upper = list(continuous = wrap("cor", size = 4)),
+        lower = list(continuous = wrap("points", alpha = 0.3)),
+        diag = list(continuous = wrap("barDiag"))
     ) |>
-        layout(
-            title = "Assets Daily Returns",
-            hovermode = "closest",
-            dragmode = "select",
-            plot_bgcolor = "rgba(240, 240, 240, 0.95)",
-            xaxis = list(
-                domain = NULL, showline = FALSE, zeroline = FALSE,
-                gridcolor = "#ffff", ticklen = 4
-            ),
-            yaxis = list(
-                domain = NULL, showline = FALSE, zeroline = FALSE,
-                gridcolor = "#ffff", ticklen = 4
-            )
-        ) |>
-        style(
-            # diagonal = list(visible = FALSE),
-            showupperhalf = FALSE
-        )
-
-    # Apply the axis settings dynamically
-    axis <- list(
-        showline = FALSE,
-        zeroline = FALSE,
-        gridcolor = "#ffff",
-        ticklen = 4
-    )
-    axis_settings <- list()
-    for (i in seq_along(dimensions_list)) {
-        axis_settings[[paste0("xaxis", i)]] <- axis
-        axis_settings[[paste0("yaxis", i)]] <- axis
-    }
-    p |> layout(axis_settings)
+        ggplotly()
 })

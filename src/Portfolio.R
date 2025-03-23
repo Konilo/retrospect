@@ -113,57 +113,26 @@ Portfolio <- R6Class("Portfolio",
             # traded and others are not
             na.omit(comparison_dt)
         },
-        analyze_assets_correlation = function() {
-            return_cols <- grep(
-                ".Return", colnames(self$merged_assets),
-                value = TRUE
-            )
-
-            # Pairwise Pearson correlations matrix
-            cor_matrix <- cor(
-                self$merged_assets[
-                    ,
-                    ..return_cols
-                ],
-                use = "pairwise.complete.obs",
-                method = "pearson"
-            ) |> signif(digits = 3)
-
-            # Pearson correlation p-values matrix
-            cor_pval_matrix <- matrix(
-                NA,
-                ncol = length(return_cols),
-                nrow = length(return_cols)
-            )
-            colnames(cor_pval_matrix) <- rownames(
-                cor_pval_matrix
-            ) <- return_cols
-
-            for (i in seq_along(return_cols)) {
-                for (j in seq_along(return_cols)) {
-                    if (i != j) {
-                        test <- cor.test(
-                            self$merged_assets[[return_cols[i]]],
-                            self$merged_assets[[return_cols[j]]],
-                            method = "pearson"
-                        )
-                        cor_pval_matrix[i, j] <- test$p.value |>
-                            signif(digits = 3)
-                    }
-                }
+        get_plot_data = function(data_type) {
+            if (data_type == "assets_daily_returns") {
+                return_cols <- grep(
+                    ".Return", colnames(self$merged_assets),
+                    value = TRUE
+                )
+                cols_to_keep <- c("date", return_cols)
+                plot_data <- self$merged_assets[, ..cols_to_keep]
+                setnames(
+                    plot_data,
+                    return_cols,
+                    lapply(
+                        self$weighted_assets_list,
+                        function(x) x[[2]]$ticker
+                    ) |> unlist()
+                )
+                na.omit(plot_data)
+            } else {
+                stop("Invalid data_type")
             }
-
-            # Asset returns table
-            assets_daily_returns <- self$merged_assets[
-                ,
-                c("date", ..return_cols)
-            ]
-
-            list(
-                cor_matrix = cor_matrix,
-                cor_pval_matrix = cor_pval_matrix,
-                assets_daily_returns = assets_daily_returns
-            )
         }
     ),
     private = list(

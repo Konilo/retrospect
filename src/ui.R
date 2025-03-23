@@ -194,17 +194,15 @@ ui <- page_navbar(
             card_header("Portfolio & Assets Performance"),
             full_screen = TRUE,
             fill = FALSE,
-            card_body(plotlyOutput(
-                "retro_pf_ana__assets_price_comp_plot"
-            ))
+            card_body(
+                plotlyOutput("retro_pf_ana__assets_price_comp_plot")
+            )
         ),
         card(
             card_header("Portfolio Assets Correlation"),
             full_screen = TRUE,
             fill = FALSE,
             card_body(
-                # uiOutput("retro_pf_ana__assets_cor_matrix"),
-                # uiOutput("retro_pf_ana__assets_cor_pval_matrix"),
                 plotlyOutput("retro_pf_ana__assets_cor_splom")
             )
         )
