@@ -10,7 +10,7 @@ ui <- page_navbar(
     id = "nav",
     navbar_options = navbar_options(
         bg = "#000000",
-        theme = "dark"
+        theme = "auto"
     ),
     sidebar = sidebar(
         title = "Parameters",
@@ -92,6 +92,19 @@ ui <- page_navbar(
                 start = today() %m-% years(7),
                 end = today(),
                 weekstart = 1
+            ),
+            selectInput(
+                "retro_pf_ana__time_unit",
+                "Time Unit",
+                choices = list(
+                    "Day" = "day",
+                    "Week" = "week",
+                    "Month" = "month",
+                    "Quarter" = "quarter",
+                    "Semester" = "halfyear",
+                    "Year" = "year"
+                ),
+                selected = "month"
             ),
             numericInput(
                 "retro_pf_ana__risk_free_rate",
@@ -205,6 +218,14 @@ ui <- page_navbar(
             card_body(
                 plotlyOutput("retro_pf_ana__assets_cor_splom")
             )
+        ),
+        card(
+            card_header("Portfolio Daily Returns Distribution Per Time Unit"),
+            full_screen = TRUE,
+            fill = FALSE,
+            card_body(plotlyOutput(
+                "retro_pf_ana__returns_distrib_per_time_unit_plot"
+            ))
         )
     ),
     nav_panel(

@@ -78,7 +78,11 @@ retro_pf_ana__pf <- reactive({
     bindEvent(input$retro_pf_ana__submit)
 
 output$retro_pf_ana__assets_price_comp_plot <- renderPlotly({
-    plot_data <- retro_pf_ana__pf()$get_assets_price_comparison()
+    # plot_data <- retro_pf_ana__pf()$get_assets_price_comparison()
+    plot_data <- retro_pf_ana__pf()$get_plot_data(
+        "assets_price_comparison",
+        "day"
+    )
 
     # Avoiding the warning from brewer.pal() when n < 3
     n_assets <- plot_data[, uniqueN(asset)]
@@ -106,7 +110,7 @@ output$retro_pf_ana__assets_price_comp_plot <- renderPlotly({
 
 output$retro_pf_ana__assets_cor_splom <- renderPlotly({
     plot_data <- retro_pf_ana__pf()$get_plot_data(
-        "assets_daily_returns"
+        "assets_returns", "day"
     )[, -"date"]
 
 
@@ -118,3 +122,45 @@ output$retro_pf_ana__assets_cor_splom <- renderPlotly({
     ) |>
         ggplotly()
 })
+
+output$retro_pf_ana__returns_distrib_per_time_unit_plot <- renderPlotly({
+    plot_data <- retro_pf_ana__pf()$get_plot_data(
+        "mean_sd_over_time",
+        # Mean & SD of daily returns don't make sense at the scale of days
+        # Defaulting to the next time unit so that the single time unit
+        # input doesn't cause issues
+        ifelse(
+            input$retro_pf_ana__time_unit == "day",
+            "week",
+            input$retro_pf_ana__time_unit
+        )
+    )
+    plot_ly(
+        data = plot_data,
+        type = "scatter",
+        mode = "lines",
+        x = ~date,
+        y = ~mean_plus_2_sd_daily_return,
+        name = "Mean Daily Return + 2 Std. Dev."
+    ) |>
+        add_trace(
+            y = ~sd_daily_return,
+            name = "Daily Returns Std. Dev."
+        ) |>
+        add_trace(
+            y = ~mean_daily_return,
+            name = "Mean Daily Return"
+        ) |>
+        add_trace(
+            y = ~mean_minus_2_sd_daily_return,
+            name = "Mean Daily Return - 2 Std. Dev."
+        ) |>
+        layout(
+            title = "",
+            xaxis = list(title = ""),
+            yaxis = list(title = "Daily Return (%)"),
+            barmode = "overlay",
+            hovermode = "x"
+        )
+}) |>
+    bindEvent(input$retro_pf_ana__submit)

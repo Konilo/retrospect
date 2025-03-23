@@ -192,20 +192,20 @@ output$retro_asset_ana__returns_distrib_per_time_unit_plot <- renderPlotly({
         type = "scatter",
         mode = "lines",
         x = ~date,
-        y = ~mean_daily_return,
-        name = "Mean Daily Return"
+        y = ~mean_plus_2_sd_daily_return,
+        name = "Mean Daily Return + 2 Std. Dev."
     ) |>
         add_trace(
             y = ~sd_daily_return,
             name = "Daily Returns Std. Dev."
         ) |>
         add_trace(
-            y = ~mean_minus_2_sd_daily_return,
-            name = "Mean Daily Return - 2 Std. Dev."
+            y = ~mean_daily_return,
+            name = "Mean Daily Return"
         ) |>
         add_trace(
-            y = ~mean_plus_2_sd_daily_return,
-            name = "Mean Daily Return + 2 Std. Dev."
+            y = ~mean_minus_2_sd_daily_return,
+            name = "Mean Daily Return - 2 Std. Dev."
         ) |>
         layout(
             title = retro_asset_ana__asset()$ticker,
