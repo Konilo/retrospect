@@ -2,14 +2,15 @@ library(shiny)
 library(data.table)
 library(plotly)
 library(DT)
+library(GGally)
 source("Asset.R")
 source("Portfolio.R")
 
 
 # Initial PF
 retro_pf_ana__pf_assets_reac <- reactiveVal(data.table(
-    ticker = c("CW8.PA", "BTC-USD"),
-    weight = c(95, 5)
+    ticker = c("CW8.PA", "IGLN.L", "BTC-USD"),
+    weight = c(90, 5, 5)
 ))
 
 # Add PF asset
@@ -68,12 +69,12 @@ retro_pf_ana__pf <- reactive({
         risk_free_rate = input$retro_pf_ana__risk_free_rate / 100
     )
 }) |>
-    bindCache(
-        input$retro_pf_ana__submit,
-        retro_pf_ana__pf_assets_reac(),
-        input$retro_pf_ana__risk_free_rate,
-        input$retro_pf_ana__trading_days_per_year
-    ) |>
+    # bindCache(
+    #     input$retro_pf_ana__submit,
+    #     retro_pf_ana__pf_assets_reac(),
+    #     input$retro_pf_ana__risk_free_rate,
+    #     input$retro_pf_ana__trading_days_per_year
+    # ) |>
     bindEvent(input$retro_pf_ana__submit)
 
 output$retro_pf_ana__assets_price_comp_plot <- renderPlotly({
@@ -101,4 +102,100 @@ output$retro_pf_ana__assets_price_comp_plot <- renderPlotly({
             yaxis = list(title = "Price Change (%)"),
             hovermode = "x"
         )
+})
+
+library(xtable)
+output$retro_pf_ana__assets_cor_matrix <- renderUI({
+    cor_matrix <- retro_pf_ana__pf()$analyze_assets_correlation()[[
+        "cor_matrix"
+    ]]
+
+    M <- print(
+        xtable(
+            cor_matrix,
+            align = rep("c", ncol(cor_matrix) + 1),
+            digits = 3
+        ),
+        floating = FALSE,
+        tabular.environment = "array",
+        comment = FALSE,
+        print.results = FALSE
+    )
+    html <- paste0("$$", M, "$$")
+    list(withMathJax(HTML(html)))
+})
+
+output$retro_pf_ana__assets_cor_pval_matrix <- renderUI({
+    cor_pval_matrix <- retro_pf_ana__pf()$analyze_assets_correlation()[[
+        "cor_pval_matrix"
+    ]]
+
+    M <- print(
+        xtable(
+            cor_pval_matrix,
+            align = rep("c", ncol(cor_pval_matrix) + 1),
+            digits = 20
+        ),
+        floating = FALSE,
+        tabular.environment = "array",
+        comment = FALSE,
+        print.results = FALSE
+    )
+    html <- paste0("$$", M, "$$")
+    list(withMathJax(HTML(html)))
+})
+
+output$retro_pf_ana__assets_cor_splom <- renderPlotly({
+    asset_daily_returns <- retro_pf_ana__pf()$analyze_assets_correlation()[[
+        "assets_daily_returns"
+    ]]
+
+    dimensions_list <- lapply(
+        colnames(asset_daily_returns)[-1],
+        function(col) {
+            list(
+                label = col,
+                values = asset_daily_returns[[col]]
+            )
+        }
+    )
+
+    p <- plot_ly(
+        data = asset_daily_returns,
+        type = "splom",
+        dimensions = dimensions_list,
+        text = ~date
+    ) |>
+        layout(
+            title = "Assets Daily Returns",
+            hovermode = "closest",
+            dragmode = "select",
+            plot_bgcolor = "rgba(240, 240, 240, 0.95)",
+            xaxis = list(
+                domain = NULL, showline = FALSE, zeroline = FALSE,
+                gridcolor = "#ffff", ticklen = 4
+            ),
+            yaxis = list(
+                domain = NULL, showline = FALSE, zeroline = FALSE,
+                gridcolor = "#ffff", ticklen = 4
+            )
+        ) |>
+        style(
+            # diagonal = list(visible = FALSE),
+            showupperhalf = FALSE
+        )
+
+    # Apply the axis settings dynamically
+    axis <- list(
+        showline = FALSE,
+        zeroline = FALSE,
+        gridcolor = "#ffff",
+        ticklen = 4
+    )
+    axis_settings <- list()
+    for (i in seq_along(dimensions_list)) {
+        axis_settings[[paste0("xaxis", i)]] <- axis
+        axis_settings[[paste0("yaxis", i)]] <- axis
+    }
+    p |> layout(axis_settings)
 })

@@ -72,20 +72,98 @@ Portfolio <- R6Class("Portfolio",
                 )
             )
 
+            # Compute the daily price change for the portfolio (weighted)
+            asset_weights <- sapply(
+                self$weighted_assets_list,
+                function(x) x[[1]]
+            )
+            price_pct_change_cols <- grep(
+                "_price_pct_change$", colnames(comparison_dt),
+                value = TRUE
+            )
+            comparison_dt[
+                ,
+                portfolio_price_pct_change := rowSums(
+                    mapply(`*`, .SD, asset_weights)
+                ),
+                .SDcols = price_pct_change_cols
+            ]
+
+            # Rm no longer needed columns
             cols_to_keep <- grep(
                 "(_price_pct_change|date)$",
                 colnames(comparison_dt),
                 value = TRUE
             )
             comparison_dt <- comparison_dt[, ..cols_to_keep]
+
+            # Wide to long
             comparison_dt <- melt(
                 comparison_dt,
                 id.vars = 1,
                 variable.name = "asset",
                 value.name = "price_pct_change"
             )
+
+            # Clean up asset names
             comparison_dt[, asset := gsub("_price_pct_change", "", asset)]
+            comparison_dt[, asset := gsub("portfolio", "Portfolio", asset)]
+
+            # Rm rows with NAs, typically when some assets are continually
+            # traded and others are not
             na.omit(comparison_dt)
+        },
+        analyze_assets_correlation = function() {
+            return_cols <- grep(
+                ".Return", colnames(self$merged_assets),
+                value = TRUE
+            )
+
+            # Pairwise Pearson correlations matrix
+            cor_matrix <- cor(
+                self$merged_assets[
+                    ,
+                    ..return_cols
+                ],
+                use = "pairwise.complete.obs",
+                method = "pearson"
+            ) |> signif(digits = 3)
+
+            # Pearson correlation p-values matrix
+            cor_pval_matrix <- matrix(
+                NA,
+                ncol = length(return_cols),
+                nrow = length(return_cols)
+            )
+            colnames(cor_pval_matrix) <- rownames(
+                cor_pval_matrix
+            ) <- return_cols
+
+            for (i in seq_along(return_cols)) {
+                for (j in seq_along(return_cols)) {
+                    if (i != j) {
+                        test <- cor.test(
+                            self$merged_assets[[return_cols[i]]],
+                            self$merged_assets[[return_cols[j]]],
+                            method = "pearson"
+                        )
+                        cor_pval_matrix[i, j] <- test$p.value |>
+                            signif(digits = 3)
+                    }
+                }
+            }
+
+            # Asset returns table
+            assets_daily_returns <- self$merged_assets[
+                ,
+                c("date", ..return_cols)
+            ]
+
+            list(
+                cor_matrix = cor_matrix,
+                cor_pval_matrix = cor_pval_matrix,
+                assets_daily_returns = assets_daily_returns
+            )
         }
     ),
     private = list(
@@ -99,32 +177,31 @@ Portfolio <- R6Class("Portfolio",
             )
 
             # Filter by date, if requested
+            date_colname <- self$weighted_assets_list[[1]][[2]]$colnames_map[[
+                "date"
+            ]] # Assuming all assets have the same date colname
             if (!is.null(self$from)) {
                 merged_assets <- merged_assets[
-                    get(
-                        self$weighted_assets_list[[1]][[2]]$colnames_map[[
-                            "date"
-                        ]]
-                    ) >= self$from,
+                    get(date_colname) >= self$from,
                 ]
             }
             if (!is.null(self$to)) {
                 merged_assets <- merged_assets[
-                    get(
-                        self$weighted_assets_list[[1]][[2]]$colnames_map[[
-                            "date"
-                        ]]
-                    ) <= self$to,
+                    get(date_colname) <= self$to,
                 ]
             }
 
             # Compute the weighted PF return
+            asset_weights <- sapply(
+                self$weighted_assets_list,
+                function(x) x[[1]]
+            )
             merged_assets[
                 ,
-                portfolio_weighted_return := rowSums(
-                    .SD * sapply(self$weighted_assets_list, function(x) x[[1]])
-                ),
-                .SDcols = grep(".Return", colnames(merged_assets), value = TRUE)
+                portfolio_return := rowSums(mapply(`*`, .SD, asset_weights)),
+                .SDcols = grep(
+                    ".Return", colnames(merged_assets), value = TRUE
+                )
             ]
         }
     )

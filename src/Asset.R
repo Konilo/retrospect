@@ -29,7 +29,9 @@ Asset <- R6Class("Asset",
             ) {
                 stop("Invalid data_type")
             }
-            if (!time_unit %in% c("day", "week", "month", "year")) {
+            if (!time_unit %in% c(
+                "day", "week", "quarter", "halfyear", "month", "year"
+            )) {
                 stop("Invalid time_unit")
             }
             if (!is.null(date_range) && data_type != "ohlcv") {
@@ -58,6 +60,17 @@ Asset <- R6Class("Asset",
             risk_free_rate,
             n_trading_days_per_year
         ) {
+            #Checks
+            if (!is.numeric(risk_free_rate) || risk_free_rate < 0) {
+                stop("Invalid risk_free_rate")
+            }
+            if (
+                !is.numeric(n_trading_days_per_year) ||
+                    n_trading_days_per_year <= 0
+            ) {
+                stop("Invalid n_trading_days_per_year")
+            }
+
             returns <- self$get_plot_data(
                 "ohlcv",
                 "day",
@@ -192,28 +205,26 @@ Asset <- R6Class("Asset",
         },
         get_ohlcv_data = function(self, time_unit, date_range) {
             plot_data <- copy(self$ohlcv)
+            setnames(
+                plot_data,
+                old = unlist(self$colnames_map),
+                new = names(self$colnames_map)
+            )
+
             if (time_unit == "day") {
-                setnames(
-                    plot_data,
-                    old = unlist(self$colnames_map),
-                    new = names(self$colnames_map)
-                )
                 plot_data[, return := return * 100]
-            } else if (time_unit %chin% c("week", "month", "year")) {
+            } else {
                 plot_data <- plot_data[
                     ,
                     .(
-                        open = .SD[1, get(self$colnames_map[["open"]])],
-                        high = .SD[, max(get(self$colnames_map[["high"]]))],
-                        low = .SD[, min(get(self$colnames_map[["low"]]))],
-                        adjusted_close = .SD[
-                            .N,
-                            get(self$colnames_map[["adjusted_close"]])
-                        ]
+                        open = .SD[1, open],
+                        high = .SD[, max(high)],
+                        low = .SD[, min(low)],
+                        adjusted_close = .SD[.N, adjusted_close]
                     ),
                     by = .(
                         date = floor_date(
-                            get(self$colnames_map[["date"]]),
+                            date,
                             unit = time_unit,
                             week_start = 1
                         )

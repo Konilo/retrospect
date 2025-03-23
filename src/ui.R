@@ -45,6 +45,8 @@ ui <- page_navbar(
                     "Day" = "day",
                     "Week" = "week",
                     "Month" = "month",
+                    "Quarter" = "quarter",
+                    "Semester" = "halfyear",
                     "Year" = "year"
                 ),
                 selected = "month"
@@ -82,8 +84,7 @@ ui <- page_navbar(
             fluidRow(
                 # 5 to let enough space for the other button
                 column(5, actionButton("retro_pf_ana__add_asset", "Add")),
-                # Instead of 12, any value between 1 and 12 would work
-                column(12, actionButton("retro_pf_ana__remove_asset", "Remove"))
+                column(7, actionButton("retro_pf_ana__remove_asset", "Remove"))
             ),
             dateRangeInput(
                 "retro_pf_ana__date_range",
@@ -190,12 +191,22 @@ ui <- page_navbar(
     nav_panel(
         title = "Retrospective Portfolio Analysis", # aka retro_pf_ana
         card(
-            card_header("Portfolio Assets Price Evolution"),
+            card_header("Portfolio & Assets Performance"),
             full_screen = TRUE,
             fill = FALSE,
             card_body(plotlyOutput(
                 "retro_pf_ana__assets_price_comp_plot"
             ))
+        ),
+        card(
+            card_header("Portfolio Assets Correlation"),
+            full_screen = TRUE,
+            fill = FALSE,
+            card_body(
+                # uiOutput("retro_pf_ana__assets_cor_matrix"),
+                # uiOutput("retro_pf_ana__assets_cor_pval_matrix"),
+                plotlyOutput("retro_pf_ana__assets_cor_splom")
+            )
         )
     ),
     nav_panel(
