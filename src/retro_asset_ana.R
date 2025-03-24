@@ -12,7 +12,7 @@ retro_asset_ana__asset <- reactive({
     bindEvent(input$retro_asset_ana__submit)
 
 output$retro_asset_ana__price_plot <- renderPlotly({
-    plot_data <- retro_asset_ana__asset()$get_plot_data(
+    plot_data <- retro_asset_ana__asset()$get_prepared_data(
         "ohlcv",
         input$retro_asset_ana__time_unit
     )
@@ -63,7 +63,7 @@ output$retro_asset_ana__price_plot <- renderPlotly({
     bindEvent(input$retro_asset_ana__submit)
 
 output$retro_asset_ana__return_per_time_unit_plot <- renderPlotly({
-    plot_data <- retro_asset_ana__asset()$get_plot_data(
+    plot_data <- retro_asset_ana__asset()$get_prepared_data(
         "return_per_time_unit",
         input$retro_asset_ana__time_unit
     )
@@ -84,7 +84,7 @@ output$retro_asset_ana__return_per_time_unit_plot <- renderPlotly({
     bindEvent(input$retro_asset_ana__submit)
 
 output$retro_asset_ana__drawdown_plot <- renderPlotly({
-    plot_data <- retro_asset_ana__asset()$get_plot_data(
+    plot_data <- retro_asset_ana__asset()$get_prepared_data(
         "drawdown",
         "day"
     )
@@ -106,7 +106,9 @@ output$retro_asset_ana__drawdown_plot <- renderPlotly({
     bindEvent(input$retro_asset_ana__submit)
 
 retro_asset_ana__returns_analysis <- reactive({
-    retro_asset_ana__asset()$analyze_returns(
+    retro_asset_ana__asset()$get_prepared_data(
+        "returns_analysis",
+        "day",
         input$retro_asset_ana__daily_returns_distrib_date_range,
         input$retro_asset_ana__risk_free_rate,
         as.integer(input$retro_asset_ana__trading_days_per_year)
@@ -176,7 +178,7 @@ output$retro_asset_ana__returns_distrib_sharpe_ratio <- renderText({
     bindEvent(input$retro_asset_ana__submit)
 
 output$retro_asset_ana__returns_distrib_per_time_unit_plot <- renderPlotly({
-    plot_data <- retro_asset_ana__asset()$get_plot_data(
+    plot_data <- retro_asset_ana__asset()$get_prepared_data(
         "mean_sd_over_time",
         # Mean & SD of daily returns don't make sense at the scale of days
         # Defaulting to the next time unit so that the single time unit

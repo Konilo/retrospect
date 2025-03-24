@@ -226,6 +226,46 @@ ui <- page_navbar(
             card_body(plotlyOutput(
                 "retro_pf_ana__returns_distrib_per_time_unit_plot"
             ))
+        ),
+        card(
+            card_header("Portfolio Daily Returns Detailed Analysis"),
+            full_screen = TRUE,
+            fill = FALSE,
+            card_body(
+                layout_column_wrap(
+                    value_box(
+                        title = "Mean",
+                        min_height = "75px",
+                        fill = FALSE,
+                        value = textOutput(
+                            "retro_pf_ana__returns_distrib_mean"
+                        )
+                    ),
+                    value_box(
+                        title = "Standard Deviation",
+                        min_height = "75px",
+                        fill = FALSE,
+                        value = textOutput(
+                            "retro_pf_ana__returns_distrib_sd"
+                        )
+                    ),
+                    value_box(
+                        title = "Shapiro-Wilk Normality Test",
+                        min_height = "75px",
+                        value = textOutput(
+                            "retro_pf_ana__returns_distrib_normality_test"
+                        )
+                    ),
+                    value_box(
+                        title = "Sharpe Ratio",
+                        min_height = "75px",
+                        value = textOutput(
+                            "retro_pf_ana__returns_distrib_sharpe_ratio"
+                        )
+                    )
+                ),
+                plotlyOutput("retro_pf_ana__returns_distrib_plot")
+            )
         )
     ),
     nav_panel(

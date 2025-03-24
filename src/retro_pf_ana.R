@@ -78,8 +78,7 @@ retro_pf_ana__pf <- reactive({
     bindEvent(input$retro_pf_ana__submit)
 
 output$retro_pf_ana__assets_price_comp_plot <- renderPlotly({
-    # plot_data <- retro_pf_ana__pf()$get_assets_price_comparison()
-    plot_data <- retro_pf_ana__pf()$get_plot_data(
+    plot_data <- retro_pf_ana__pf()$get_prepared_data(
         "assets_price_comparison",
         "day"
     )
@@ -109,7 +108,7 @@ output$retro_pf_ana__assets_price_comp_plot <- renderPlotly({
 })
 
 output$retro_pf_ana__assets_cor_splom <- renderPlotly({
-    plot_data <- retro_pf_ana__pf()$get_plot_data(
+    plot_data <- retro_pf_ana__pf()$get_prepared_data(
         "assets_returns", "day"
     )[, -"date"]
 
@@ -124,7 +123,7 @@ output$retro_pf_ana__assets_cor_splom <- renderPlotly({
 })
 
 output$retro_pf_ana__returns_distrib_per_time_unit_plot <- renderPlotly({
-    plot_data <- retro_pf_ana__pf()$get_plot_data(
+    plot_data <- retro_pf_ana__pf()$get_prepared_data(
         "mean_sd_over_time",
         # Mean & SD of daily returns don't make sense at the scale of days
         # Defaulting to the next time unit so that the single time unit
@@ -162,5 +161,75 @@ output$retro_pf_ana__returns_distrib_per_time_unit_plot <- renderPlotly({
             barmode = "overlay",
             hovermode = "x"
         )
+}) |>
+    bindEvent(input$retro_pf_ana__submit)
+
+retro_pf_ana__returns_analysis <- reactive({
+    retro_pf_ana__pf()$get_prepared_data(
+        "returns_analysis",
+        "day",
+        input$retro_pf_ana__risk_free_rate,
+        as.integer(input$retro_pf_ana__trading_days_per_year)
+    )
+}) |>
+    # bindCache(
+    #     retro_pf_ana__pf_assets_reac(),
+    #     input$retro_pf_ana__daily_returns_distrib_date_range,
+    #     input$retro_pf_ana__risk_free_rate,
+    #     input$retro_pf_ana__trading_days_per_year
+    # ) |>
+    bindEvent(input$retro_pf_ana__submit)
+
+output$retro_pf_ana__returns_distrib_plot <- renderPlotly({
+    plot_ly(
+        data = retro_pf_ana__returns_analysis()$returns,
+        type = "histogram",
+        x = ~return,
+        name = "Actual",
+        histnorm = "percent",
+        xbins = retro_pf_ana__returns_analysis()$plotly_x_bins
+    ) |>
+        add_trace(
+            data = retro_pf_ana__returns_analysis()$normal_return_freqs,
+            x = ~return,
+            y = ~frequency,
+            name = "Normal",
+            type = "scatter",
+            mode = "lines+markers",
+            histnorm = NULL,
+            xbins = NULL
+        ) |>
+        layout(
+            title = paste0(
+                retro_pf_ana__returns_analysis()$returns[, min(date)],
+                " to ",
+                retro_pf_ana__returns_analysis()$returns[, max(date)],
+                ", N = ", retro_pf_ana__returns_analysis()$returns[, .N]
+            ),
+            xaxis = list(title = "Daily Return (%)"),
+            yaxis = list(title = "Frequency (%)"),
+            barmode = "overlay",
+            hovermode = "x"
+        )
+}) |>
+    bindEvent(input$retro_pf_ana__submit)
+
+output$retro_pf_ana__returns_distrib_mean <- renderText({
+    paste(retro_pf_ana__returns_analysis()$mean, "%")
+}) |>
+    bindEvent(input$retro_pf_ana__submit)
+
+output$retro_pf_ana__returns_distrib_sd <- renderText({
+    paste(retro_pf_ana__returns_analysis()$sd, "% points")
+}) |>
+    bindEvent(input$retro_pf_ana__submit)
+
+output$retro_pf_ana__returns_distrib_normality_test <- renderText({
+    retro_pf_ana__returns_analysis()$normality_test
+}) |>
+    bindEvent(input$retro_pf_ana__submit)
+
+output$retro_pf_ana__returns_distrib_sharpe_ratio <- renderText({
+    retro_pf_ana__returns_analysis()$sharpe_ratio
 }) |>
     bindEvent(input$retro_pf_ana__submit)
