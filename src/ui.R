@@ -14,6 +14,7 @@ ui <- page_navbar(
     ),
     sidebar = sidebar(
         title = "Parameters",
+        width = "20%",
         conditionalPanel(
             "input.nav === 'Retrospective Asset Analysis'",
             textInput(
@@ -70,8 +71,8 @@ ui <- page_navbar(
                 "retro_asset_ana__trading_days_per_year",
                 "Trading Days Per Year",
                 choices = list(
-                    "252 Days (Equities)" = 252,
-                    "365 Days (Forex, Crypto)" = 365
+                    "252 Days (Equities, etc.)" = 252,
+                    "365 Days (Crypto)" = 365
                 ),
                 selected = 252
             ),
@@ -82,9 +83,18 @@ ui <- page_navbar(
             p("Portfolio assets"),
             DTOutput("retro_pf_ana__pf_assets"),
             fluidRow(
-                # 5 to let enough space for the other button
-                column(5, actionButton("retro_pf_ana__add_asset", "Add")),
-                column(7, actionButton("retro_pf_ana__remove_asset", "Remove"))
+                column(
+                    6,
+                    actionButton(
+                        "retro_pf_ana__add_asset", HTML("Add</br>Asset")
+                    )
+                ),
+                column(
+                    6,
+                    actionButton(
+                        "retro_pf_ana__remove_asset", "Remove Asset"
+                    )
+                )
             ),
             dateRangeInput(
                 "retro_pf_ana__date_range",
@@ -118,10 +128,14 @@ ui <- page_navbar(
                 "retro_pf_ana__trading_days_per_year",
                 "Trading Days Per Year",
                 choices = list(
-                    "252 Days (Equities)" = 252,
-                    "365 Days (Forex, Crypto)" = 365
+                    "252 Days (Equities, etc.)" = 252,
+                    "365 Days (Crypto)" = 365
                 ),
                 selected = 252
+            ),
+            helpText(
+                "Select the minimum number of trading days per year among the",
+                " assets"
             ),
             actionButton("retro_pf_ana__submit", "Submit")
         ),
@@ -209,6 +223,14 @@ ui <- page_navbar(
             fill = FALSE,
             card_body(
                 plotlyOutput("retro_pf_ana__assets_price_comp_plot")
+            )
+        ),
+        card(
+            card_header("Portfolio Return Per Time Unit"),
+            full_screen = TRUE,
+            fill = FALSE,
+            card_body(
+                plotlyOutput("retro_pf_ana__return_per_time_unit_plot")
             )
         ),
         card(

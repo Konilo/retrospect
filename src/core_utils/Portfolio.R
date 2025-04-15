@@ -49,6 +49,7 @@ Portfolio <- R6Class("Portfolio",
             stopifnot(
                 data_type %in% c(
                     "assets_price_comparison",
+                    "return_per_time_unit",
                     "assets_returns",
                     "mean_sd_over_time",
                     "returns_analysis"
@@ -92,6 +93,8 @@ Portfolio <- R6Class("Portfolio",
             switch(data_type,
                 "assets_price_comparison" =
                     private$get_assets_price_comparison(self),
+                "return_per_time_unit" =
+                    private$get_return_per_time_unit_data(self, time_unit),
                 "assets_returns" =
                     private$get_assets_returns(self),
                 "mean_sd_over_time" =
@@ -169,7 +172,7 @@ Portfolio <- R6Class("Portfolio",
                         paste0(asset$ticker, "_price_pct_change") := ((
                             get(asset$colnames_map[["adjusted_close"]]) /
                                 get(paste0(asset$ticker, "_init_price")) - 1
-                        ) * 100) |> round(1)
+                        ) * 100) |> round(2)
                     ]
                 },
                 lapply(
@@ -218,6 +221,55 @@ Portfolio <- R6Class("Portfolio",
             # Rm rows with NAs, typically when some assets are continually
             # traded and others are not
             na.omit(comparison_dt)
+        },
+        get_return_per_time_unit_data = function(self, time_unit) {
+            # Compute the return per time unit
+            plot_data <- copy(self$merged_assets)
+
+            # Only include rows from the earliest complete day
+            adj_close_cols <- grep(
+                ".Adjusted$",
+                colnames(plot_data),
+                value = TRUE
+            )
+            complete_rows <- complete.cases(plot_data[, ..adj_close_cols])
+            earliest_complete_day <- plot_data[complete_rows, min(date)]
+            plot_data <- plot_data[date >= earliest_complete_day]
+
+            # Compute the assets' returns per time unit
+            plot_data <- plot_data[
+                ,
+                lapply(
+                    .SD,
+                    function(col) {
+                        (
+                            col |> na.omit() |> last() /
+                                col |> na.omit() |> first() * 100
+                        ) - 100
+                    }
+                ),
+                by = .(
+                    date = floor_date(
+                        date,
+                        unit = time_unit,
+                        week_start = 1
+                    )
+                ),
+                .SDcols = adj_close_cols
+            ]
+
+            # Compute the portfolio's return per time unit by combining the assets' returns
+            asset_weights <- sapply(
+                self$weighted_assets_list,
+                function(x) x[[1]]
+            )
+            plot_data[
+                ,
+                portfolio_pct_return := rowSums(
+                    mapply(`*`, .SD, asset_weights)
+                ) |> round(2),
+                .SDcols = adj_close_cols
+            ]
         },
         get_assets_returns = function(self) {
             return_cols <- grep(
