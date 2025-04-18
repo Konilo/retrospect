@@ -2,6 +2,7 @@ library(shiny)
 
 
 # Support linking to a given tab and update the URL to reflect the current tab
+
 is_session_init_update <- reactiveVal(TRUE)
 
 observeEvent(
@@ -21,7 +22,11 @@ observeEvent(
                 )
                 updateQueryString(new_url, mode = "push")
             } else {
-                updateTabsetPanel(session, "nav", selected = query$tab)
+                updateTabsetPanel(
+                    session,
+                    "nav",
+                    selected = URLdecode(query$tab)
+                )
             }
 
             is_session_init_update(FALSE)

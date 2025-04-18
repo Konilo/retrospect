@@ -128,6 +128,26 @@ output$retro_pf_ana__return_per_time_unit_plot <- renderPlotly({
 }) |>
     bindEvent(input$retro_pf_ana__submit)
 
+output$retro_pf_ana__drawdown_plot <- renderPlotly({
+    plot_data <- retro_pf_ana__pf()$get_prepared_data(
+        "drawdown",
+        "day"
+    )
+
+    plot_ly(
+        data = plot_data,
+        type = "scatter",
+        mode = "lines",
+        x = ~date,
+        y = ~drawdown
+    ) |>
+        layout(
+            title = "",
+            xaxis = list(title = ""),
+            yaxis = list(title = "Drawdown (%)"),
+            hovermode = "x"
+        )
+})
 output$retro_pf_ana__assets_cor_splom <- renderPlotly({
     plot_data <- retro_pf_ana__pf()$get_prepared_data(
         "assets_returns", "day"

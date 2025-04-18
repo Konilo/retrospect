@@ -234,6 +234,12 @@ ui <- page_navbar(
             )
         ),
         card(
+            card_header("Portfolio Drawdowns"),
+            full_screen = TRUE,
+            fill = FALSE,
+            card_body(plotlyOutput("retro_pf_ana__drawdown_plot"))
+        ),
+        card(
             card_header("Portfolio Assets Correlation"),
             full_screen = TRUE,
             fill = FALSE,

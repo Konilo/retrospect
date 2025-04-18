@@ -162,7 +162,9 @@ Asset <- R6Class("Asset",
                 )
             }
 
-            ohlcv
+            # Ensure chronological order
+            # It's essential for some logics
+            setorderv(ohlcv, self$colnames_map[["date"]])
         },
         get_ohlcv_data = function(self, time_unit, date_range) {
             plot_data <- copy(self$ohlcv)

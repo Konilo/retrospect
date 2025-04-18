@@ -50,27 +50,25 @@ Portfolio <- R6Class("Portfolio",
                 data_type %in% c(
                     "assets_price_comparison",
                     "return_per_time_unit",
+                    "drawdown",
                     "assets_returns",
                     "mean_sd_over_time",
                     "returns_analysis"
                 ),
                 time_unit %in% c("day", "week", "month", "quarter", "year")
             )
-            if (
-                data_type %chin% c(
-                    "assets_price_comparison", "assets_returns"
-                ) &&
-                    time_unit != "day"
-            ) {
-                stop(paste(
-                    "Only 'day' time_unit is allowed for data_type",
-                    "'assets_price_comparison'"
-                ))
-            }
             if (!time_unit %in% c(
                 "day", "week", "quarter", "halfyear", "month", "year"
             )) {
                 stop("Invalid time_unit")
+            }
+            if (
+                data_type %chin% c(
+                    "assets_price_comparison", "assets_returns", "drawdown"
+                ) &&
+                    time_unit != "day"
+            ) {
+                stop("Only 'day' time_unit is allowed for this data_type")
             }
             if (data_type == "returns_analysis") {
                 if (!is.numeric(risk_free_rate) || risk_free_rate < 0) {
@@ -95,6 +93,7 @@ Portfolio <- R6Class("Portfolio",
                     private$get_assets_price_comparison(self),
                 "return_per_time_unit" =
                     private$get_return_per_time_unit_data(self, time_unit),
+                "drawdown" = private$get_drawdown_data(self),
                 "assets_returns" =
                     private$get_assets_returns(self),
                 "mean_sd_over_time" =
@@ -258,7 +257,8 @@ Portfolio <- R6Class("Portfolio",
                 .SDcols = adj_close_cols
             ]
 
-            # Compute the portfolio's return per time unit by combining the assets' returns
+            # Compute the portfolio's return per time unit by combining the
+            # assets' returns
             asset_weights <- sapply(
                 self$weighted_assets_list,
                 function(x) x[[1]]
@@ -269,6 +269,77 @@ Portfolio <- R6Class("Portfolio",
                     mapply(`*`, .SD, asset_weights)
                 ) |> round(2),
                 .SDcols = adj_close_cols
+            ]
+        },
+        get_drawdown_data = function(self) {
+            comparison_dt <- copy(self$merged_assets)
+
+            # Only include rows from the earliest complete day
+            adj_close_cols <- grep(
+                ".Adjusted$",
+                colnames(comparison_dt),
+                value = TRUE
+            )
+            complete_rows <- complete.cases(comparison_dt[, ..adj_close_cols])
+            earliest_complete_day <- comparison_dt[complete_rows, min(date)]
+            comparison_dt <- comparison_dt[date >= earliest_complete_day]
+
+            # Compute the daily price change per asset
+            mapply(
+                function(asset) {
+                    comparison_dt[
+                        ,
+                        paste0(asset$ticker, "_init_price") :=
+                            get(asset$colnames_map[["adjusted_close"]])[1]
+                    ]
+                    comparison_dt[
+                        ,
+                        paste0(asset$ticker, "_price_pct_change") := ((
+                            get(asset$colnames_map[["adjusted_close"]]) /
+                                get(paste0(asset$ticker, "_init_price")) - 1
+                        ) * 100)
+                    ]
+                },
+                lapply(
+                    self$weighted_assets_list,
+                    function(list_element) list_element[[2]]
+                )
+            )
+
+            # Compute the daily price change for the portfolio (weighted)
+            asset_weights <- sapply(
+                self$weighted_assets_list,
+                function(x) x[[1]]
+            )
+            price_pct_change_cols <- grep(
+                "_price_pct_change$", colnames(comparison_dt),
+                value = TRUE
+            )
+            comparison_dt[
+                ,
+                portfolio_price_pct_change := rowSums(
+                    mapply(`*`, .SD, asset_weights)
+                ),
+                .SDcols = price_pct_change_cols
+            ]
+
+            # Remove days during which some assets were not traded
+            comparison_dt <- na.omit(comparison_dt)
+
+            comparison_dt[
+                ,
+                drawdown := (
+                    1 - (100 + portfolio_price_pct_change) /
+                        (100 + cummax(portfolio_price_pct_change))
+                ) * 100 |>
+                    signif(3)
+            ]
+
+            # No drawdown can be computed before portfolio_price_pct_change
+            # has become > 0 at least once
+            comparison_dt[
+                !is.infinite(drawdown),
+                c("date", "drawdown")
             ]
         },
         get_assets_returns = function(self) {
