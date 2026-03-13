@@ -9,7 +9,7 @@ source("core_utils/Portfolio.R")
 
 # Initial PF
 retro_pf_ana__pf_assets_reac <- reactiveVal(data.table(
-    ticker = c("CW8.PA", "IGLN.L", "BTC-USD"),
+    ticker = c("CW8.PA", "IGLN.L", "BTC-EUR"),
     weight = c(90, 5, 5)
 ))
 
@@ -153,6 +153,7 @@ output$retro_pf_ana__assets_cor_splom <- renderPlotly({
         "assets_returns", "day"
     )[, -"date"]
 
+    validate(need(nrow(plot_data) >= 2, "Not enough overlapping data."))
 
     ggpairs(
         plot_data,
