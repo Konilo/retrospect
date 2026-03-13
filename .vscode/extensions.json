@@ -1,6 +1,11 @@
 {
     "recommendations": [
         "rdebugger.r-debugger",
-        "reditorsupport.r"
+        "reditorsupport.r",
+        "eamodio.gitlens",
+        "foxundermoon.shell-format",
+        "github.vscode-github-actions",
+        "docker.docker",
+        "Anthropic.claude-code"
     ]
 }

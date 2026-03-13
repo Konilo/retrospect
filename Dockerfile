@@ -1,4 +1,4 @@
-FROM rocker/r-ver:4.4.2
+FROM rocker/r-ver:4.4.2 AS base
 
 # The Rglpk R package, a dependency of the fPortfolio R package, requires
 # libglpk40.
@@ -17,11 +17,4 @@ RUN R -e "install.packages('renv', version='1.1.1')"
 
 WORKDIR /app
 
-COPY renv.lock renv.lock
-RUN mkdir renv
-COPY renv/settings.json renv/settings.json
-COPY renv/activate.R renv/activate.R
-COPY .Rprofile .Rprofile
-RUN R -e "renv::restore()"
-
-COPY . /app
+FROM base AS development
