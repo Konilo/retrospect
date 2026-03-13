@@ -9,20 +9,19 @@ echo 'Running postCreateCommand.sh'
 # Fix ownership so the vscode user can write into it before installing Claude Code.
 sudo chown -R vscode:vscode /home/vscode/.claude
 
+# Clean the renv library so stale symlinks from previous builds don't linger.
+# The /renv/cache named volume persists across rebuilds, so restore just re-links
+# cached packages without re-downloading them.
+echo 'Cleaning renv library'
+rm -rf renv/library
+
 # Install R package dependencies via renv
 echo 'Running renv::restore()'
-R -e "renv::restore()"
+R -e "renv::restore(prompt = FALSE)"
 
 # Install dev/exploratory packages (not tracked by renv)
 echo 'Installing dev and exploratory R packages'
 R -e "
-renv::install('PortfolioAnalytics', prompt = FALSE)
-renv::install('PerformanceAnalytics', prompt = FALSE)
-renv::install('timeSeries', prompt = FALSE)
-renv::install('ROI', prompt = FALSE)
-renv::install('ROI.plugin.glpk', prompt = FALSE)
-renv::install('ROI.plugin.quadprog', prompt = FALSE)
-renv::install('CVXR', prompt = FALSE)
 renv::install('profvis', prompt = FALSE)
 renv::install('languageserver', prompt = FALSE)
 install.packages('vscDebugger', repos = 'https://manuelhentschel.r-universe.dev')
