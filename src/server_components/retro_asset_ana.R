@@ -11,6 +11,41 @@ retro_asset_ana__asset <- reactive({
     # bindCache(input$retro_asset_ana__ticker) |>
     bindEvent(input$retro_asset_ana__submit)
 
+retro_asset_ana__kpis <- reactive({
+    asset <- retro_asset_ana__asset()
+    ohlcv <- asset$ohlcv
+    adj_col <- asset$colnames_map[["adjusted_close"]]
+    ret_col <- asset$colnames_map[["return"]]
+    n_trading_days <- as.integer(input$retro_asset_ana__trading_days_per_year)
+
+    prices <- ohlcv[[adj_col]]
+    returns <- ohlcv[[ret_col]]
+    dates <- ohlcv[["date"]]
+    n_calendar_days <- as.numeric(
+        difftime(max(dates), min(dates), units = "days")
+    )
+    n_years <- n_calendar_days / 365.25
+
+    cagr <- (prices[length(prices)] / prices[1])^(1 / n_years) - 1
+    volatility <- sd(returns) * sqrt(n_trading_days)
+
+    list(
+        cagr = (cagr * 100) |> signif(3),
+        volatility = (volatility * 100) |> signif(3)
+    )
+}) |>
+    bindEvent(input$retro_asset_ana__submit)
+
+output$retro_asset_ana__cagr <- renderText({
+    paste(retro_asset_ana__kpis()$cagr, "%")
+}) |>
+    bindEvent(input$retro_asset_ana__submit)
+
+output$retro_asset_ana__volatility <- renderText({
+    paste(retro_asset_ana__kpis()$volatility, "%")
+}) |>
+    bindEvent(input$retro_asset_ana__submit)
+
 output$retro_asset_ana__price_plot <- renderPlotly({
     plot_data <- retro_asset_ana__asset()$get_prepared_data(
         "ohlcv",

@@ -77,6 +77,42 @@ retro_pf_ana__pf <- reactive({
     # ) |>
     bindEvent(input$retro_pf_ana__submit)
 
+retro_pf_ana__kpis <- reactive({
+    pf <- retro_pf_ana__pf()
+    ma <- pf$merged_assets
+    returns <- na.omit(ma[, .(date, portfolio_return)])
+    n_trading_days <- as.integer(input$retro_pf_ana__trading_days_per_year)
+
+    if (nrow(returns) < 2) {
+        return(list(cagr = NA_real_, volatility = NA_real_))
+    }
+
+    n_calendar_days <- as.numeric(
+        difftime(returns[.N, date], returns[1, date], units = "days")
+    )
+    n_years <- n_calendar_days / 365.25
+
+    cum_value <- cumprod(1 + returns[, portfolio_return])
+    cagr <- cum_value[length(cum_value)]^(1 / n_years) - 1
+    volatility <- sd(returns[, portfolio_return]) * sqrt(n_trading_days)
+
+    list(
+        cagr = (cagr * 100) |> signif(3),
+        volatility = (volatility * 100) |> signif(3)
+    )
+}) |>
+    bindEvent(input$retro_pf_ana__submit)
+
+output$retro_pf_ana__cagr <- renderText({
+    paste(retro_pf_ana__kpis()$cagr, "%")
+}) |>
+    bindEvent(input$retro_pf_ana__submit)
+
+output$retro_pf_ana__volatility <- renderText({
+    paste(retro_pf_ana__kpis()$volatility, "%")
+}) |>
+    bindEvent(input$retro_pf_ana__submit)
+
 output$retro_pf_ana__assets_price_comp_plot <- renderPlotly({
     plot_data <- retro_pf_ana__pf()$get_prepared_data(
         "assets_price_comparison",
