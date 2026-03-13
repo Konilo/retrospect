@@ -17,12 +17,13 @@ retro_asset_ana__asset <- reactive({
         }
     )
 }) |>
-    # bindCache(input$retro_asset_ana__ticker) |>
+    bindCache(input$retro_asset_ana__ticker) |>
     bindEvent(input$retro_asset_ana__submit)
 
 retro_asset_ana__kpis <- reactive({
     asset <- retro_asset_ana__asset()
-    ohlcv <- asset$ohlcv
+    date_range <- input$retro_asset_ana__date_range
+    ohlcv <- asset$ohlcv[date %between% date_range]
     adj_col <- asset$colnames_map[["adjusted_close"]]
     ret_col <- asset$colnames_map[["return"]]
     n_trading_days <- as.integer(input$retro_asset_ana__trading_days_per_year)
@@ -65,7 +66,8 @@ output$retro_asset_ana__max_drawdown <- renderText({
 output$retro_asset_ana__price_plot <- renderPlotly({
     plot_data <- retro_asset_ana__asset()$get_prepared_data(
         "ohlcv",
-        input$retro_asset_ana__time_unit
+        input$retro_asset_ana__time_unit,
+        input$retro_asset_ana__date_range
     )
 
     validate(need(
@@ -116,7 +118,8 @@ output$retro_asset_ana__price_plot <- renderPlotly({
 output$retro_asset_ana__return_per_time_unit_plot <- renderPlotly({
     plot_data <- retro_asset_ana__asset()$get_prepared_data(
         "return_per_time_unit",
-        input$retro_asset_ana__time_unit
+        input$retro_asset_ana__time_unit,
+        input$retro_asset_ana__date_range
     )
 
     plot_ly(
@@ -137,7 +140,8 @@ output$retro_asset_ana__return_per_time_unit_plot <- renderPlotly({
 output$retro_asset_ana__drawdown_plot <- renderPlotly({
     plot_data <- retro_asset_ana__asset()$get_prepared_data(
         "drawdown",
-        "day"
+        "day",
+        input$retro_asset_ana__date_range
     )
 
     plot_ly(
@@ -160,14 +164,14 @@ retro_asset_ana__returns_analysis <- reactive({
     retro_asset_ana__asset()$get_prepared_data(
         "returns_analysis",
         "day",
-        input$retro_asset_ana__daily_returns_distrib_date_range,
+        input$retro_asset_ana__date_range,
         input$retro_asset_ana__risk_free_rate,
         as.integer(input$retro_asset_ana__trading_days_per_year)
     )
 }) |>
     bindCache(
         input$retro_asset_ana__ticker,
-        input$retro_asset_ana__daily_returns_distrib_date_range,
+        input$retro_asset_ana__date_range,
         input$retro_asset_ana__risk_free_rate,
         input$retro_asset_ana__trading_days_per_year
     ) |>
@@ -238,7 +242,8 @@ output$retro_asset_ana__returns_distrib_per_time_unit_plot <- renderPlotly({
             input$retro_asset_ana__time_unit == "day",
             "week",
             input$retro_asset_ana__time_unit
-        )
+        ),
+        input$retro_asset_ana__date_range
     )
     plot_ly(
         data = plot_data,

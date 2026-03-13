@@ -485,7 +485,7 @@ Portfolio <- R6Class("Portfolio",
             sharpe_ratio <- (
                 (
                     mean - risk_free_rate / n_trading_days_per_year
-                ) / excess_return_sd
+                ) / excess_return_sd * sqrt(n_trading_days_per_year)
             ) |>
                 signif(digits = 3)
 

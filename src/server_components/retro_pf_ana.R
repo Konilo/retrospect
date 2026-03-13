@@ -79,12 +79,12 @@ retro_pf_ana__pf <- reactive({
         }
     )
 }) |>
-    # bindCache(
-    #     input$retro_pf_ana__submit,
-    #     retro_pf_ana__pf_assets_reac(),
-    #     input$retro_pf_ana__risk_free_rate,
-    #     input$retro_pf_ana__trading_days_per_year
-    # ) |>
+    bindCache(
+        retro_pf_ana__pf_assets_reac(),
+        input$retro_pf_ana__date_range,
+        input$retro_pf_ana__risk_free_rate,
+        input$retro_pf_ana__trading_days_per_year
+    ) |>
     bindEvent(input$retro_pf_ana__submit)
 
 retro_pf_ana__kpis <- reactive({
@@ -130,6 +130,59 @@ output$retro_pf_ana__volatility <- renderText({
 output$retro_pf_ana__max_drawdown <- renderText({
     paste(retro_pf_ana__kpis()$max_drawdown, "%")
 }) |>
+    bindEvent(input$retro_pf_ana__submit)
+
+output$retro_pf_ana__per_asset_kpis <- renderDT({
+    pf <- retro_pf_ana__pf()
+    n_trading_days <- as.integer(input$retro_pf_ana__trading_days_per_year)
+
+    kpi_rows <- lapply(pf$weighted_assets_list, function(x) {
+        weight <- x[[1]]
+        asset <- x[[2]]
+        ohlcv <- asset$ohlcv
+        if (!is.null(pf$from)) ohlcv <- ohlcv[date >= pf$from]
+        if (!is.null(pf$to)) ohlcv <- ohlcv[date <= pf$to]
+
+        prices <- ohlcv[[asset$colnames_map[["adjusted_close"]]]]
+        returns <- ohlcv[[asset$colnames_map[["return"]]]]
+
+        if (length(prices) < 2) {
+            return(data.table(
+                Ticker = asset$ticker,
+                `Weight (%)` = (weight * 100) |> round(1),
+                `CAGR (%)` = NA_real_,
+                `Volatility (%)` = NA_real_,
+                `Max Drawdown (%)` = NA_real_
+            ))
+        }
+
+        dates <- ohlcv[["date"]]
+        n_years <- as.numeric(
+            difftime(max(dates), min(dates), units = "days")
+        ) / 365.25
+
+        cagr <- (prices[length(prices)] / prices[1])^(1 / n_years) - 1
+        vol <- sd(returns) * sqrt(n_trading_days)
+        max_dd <- min(prices / cummax(prices) - 1)
+
+        data.table(
+            Ticker = asset$ticker,
+            `Weight (%)` = (weight * 100) |> round(1),
+            `CAGR (%)` = (cagr * 100) |> signif(3),
+            `Volatility (%)` = (vol * 100) |> signif(3),
+            `Max Drawdown (%)` = (max_dd * 100) |> signif(3)
+        )
+    })
+
+    rbindlist(kpi_rows)
+},
+    rownames = FALSE,
+    options = list(
+        pageLength = -1,
+        dom = "t",
+        ordering = FALSE
+    )
+) |>
     bindEvent(input$retro_pf_ana__submit)
 
 output$retro_pf_ana__assets_price_comp_plot <- renderPlotly({
@@ -269,12 +322,12 @@ retro_pf_ana__returns_analysis <- reactive({
         as.integer(input$retro_pf_ana__trading_days_per_year)
     )
 }) |>
-    # bindCache(
-    #     retro_pf_ana__pf_assets_reac(),
-    #     input$retro_pf_ana__daily_returns_distrib_date_range,
-    #     input$retro_pf_ana__risk_free_rate,
-    #     input$retro_pf_ana__trading_days_per_year
-    # ) |>
+    bindCache(
+        retro_pf_ana__pf_assets_reac(),
+        input$retro_pf_ana__date_range,
+        input$retro_pf_ana__risk_free_rate,
+        input$retro_pf_ana__trading_days_per_year
+    ) |>
     bindEvent(input$retro_pf_ana__submit)
 
 output$retro_pf_ana__returns_distrib_plot <- renderPlotly({
