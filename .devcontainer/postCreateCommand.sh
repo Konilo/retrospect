@@ -16,7 +16,6 @@ R -e "renv::restore()"
 # Install dev/exploratory packages (not tracked by renv)
 echo 'Installing dev and exploratory R packages'
 R -e "
-renv::install('fPortfolio', prompt = FALSE)
 renv::install('PortfolioAnalytics', prompt = FALSE)
 renv::install('PerformanceAnalytics', prompt = FALSE)
 renv::install('timeSeries', prompt = FALSE)
