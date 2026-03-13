@@ -105,14 +105,17 @@ Asset <- R6Class("Asset",
             )
         },
         fetch_daily_ohlcv = function(self) {
-            ohlcv <- getSymbols(
+            ohlcv_zoo <- getSymbols(
                 self$ticker,
                 src = self$data_source,
                 return.class = "zoo",
                 auto.assign = FALSE
-            ) |>
-                # adjustOHLC needed?
-                as.data.table(keep.rownames = "date")
+            )
+            # Deduplicate index before conversion — crypto tickers
+            # (e.g. BTC-EUR) can have duplicate dates, which causes
+            # as.data.table to drop date row names in favour of numeric ones.
+            ohlcv_zoo <- ohlcv_zoo[!duplicated(index(ohlcv_zoo))]
+            ohlcv <- as.data.table(ohlcv_zoo, keep.rownames = "date")
 
             only_close_subset <- ohlcv[
                 get(self$colnames_map[["open"]]) == get(
