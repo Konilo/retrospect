@@ -9,7 +9,8 @@
             "configureZshAsDefaultShell": true,
             "username": "vscode"
         },
-        "ghcr.io/devcontainers/features/github-cli:1": {}
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+        "ghcr.io/rocker-org/devcontainer-features/renv-cache:0": {}
     },
     "customizations": {
         "vscode": {
@@ -27,7 +28,8 @@
     },
     "postCreateCommand": "bash ./.devcontainer/postCreateCommand.sh",
     "mounts": [
-        "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume"
+        "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
+        "source=gh-cli-config-${devcontainerId},target=/home/vscode/.config/gh,type=volume"
     ],
     "remoteUser": "vscode"
 }
