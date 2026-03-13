@@ -137,13 +137,21 @@ Portfolio <- R6Class("Portfolio",
                 self$weighted_assets_list,
                 function(x) x[[1]]
             )
-            merged_assets[
-                ,
-                portfolio_return := rowSums(mapply(`*`, .SD, asset_weights)),
-                .SDcols = grep(
-                    ".Return", colnames(merged_assets), value = TRUE
-                )
-            ]
+            return_cols <- grep(
+                ".Return", colnames(merged_assets), value = TRUE
+            )
+            if (length(return_cols) > 0 && nrow(merged_assets) > 0) {
+                merged_assets[
+                    ,
+                    portfolio_return := rowSums(
+                        as.matrix(mapply(`*`, .SD, asset_weights))
+                    ),
+                    .SDcols = return_cols
+                ]
+            } else {
+                merged_assets[, portfolio_return := numeric(0)]
+            }
+            merged_assets
         },
         get_assets_price_comparison = function(self) {
             comparison_dt <- copy(self$merged_assets)
@@ -155,6 +163,13 @@ Portfolio <- R6Class("Portfolio",
                 value = TRUE
             )
             complete_rows <- complete.cases(comparison_dt[, ..adj_close_cols])
+            if (!any(complete_rows)) {
+                return(data.table(
+                    date = as.Date(character()),
+                    asset = character(),
+                    price_pct_change = numeric()
+                ))
+            }
             earliest_complete_day <- comparison_dt[complete_rows, min(date)]
             comparison_dt <- comparison_dt[date >= earliest_complete_day]
 
@@ -192,7 +207,7 @@ Portfolio <- R6Class("Portfolio",
             comparison_dt[
                 ,
                 portfolio_price_pct_change := rowSums(
-                    mapply(`*`, .SD, asset_weights)
+                    as.matrix(mapply(`*`, .SD, asset_weights))
                 ),
                 .SDcols = price_pct_change_cols
             ]
@@ -232,6 +247,12 @@ Portfolio <- R6Class("Portfolio",
                 value = TRUE
             )
             complete_rows <- complete.cases(plot_data[, ..adj_close_cols])
+            if (!any(complete_rows)) {
+                return(data.table(
+                    date = as.Date(character()),
+                    portfolio_pct_return = numeric()
+                ))
+            }
             earliest_complete_day <- plot_data[complete_rows, min(date)]
             plot_data <- plot_data[date >= earliest_complete_day]
 
@@ -266,7 +287,7 @@ Portfolio <- R6Class("Portfolio",
             plot_data[
                 ,
                 portfolio_pct_return := rowSums(
-                    mapply(`*`, .SD, asset_weights)
+                    as.matrix(mapply(`*`, .SD, asset_weights))
                 ) |> round(2),
                 .SDcols = adj_close_cols
             ]
@@ -281,6 +302,12 @@ Portfolio <- R6Class("Portfolio",
                 value = TRUE
             )
             complete_rows <- complete.cases(comparison_dt[, ..adj_close_cols])
+            if (!any(complete_rows)) {
+                return(data.table(
+                    date = as.Date(character()),
+                    drawdown = numeric()
+                ))
+            }
             earliest_complete_day <- comparison_dt[complete_rows, min(date)]
             comparison_dt <- comparison_dt[date >= earliest_complete_day]
 
@@ -318,7 +345,7 @@ Portfolio <- R6Class("Portfolio",
             comparison_dt[
                 ,
                 portfolio_price_pct_change := rowSums(
-                    mapply(`*`, .SD, asset_weights)
+                    as.matrix(mapply(`*`, .SD, asset_weights))
                 ),
                 .SDcols = price_pct_change_cols
             ]
@@ -349,19 +376,35 @@ Portfolio <- R6Class("Portfolio",
             )
             cols_to_keep <- c("date", return_cols)
             plot_data <- self$merged_assets[, ..cols_to_keep]
-            setnames(
-                plot_data,
-                return_cols,
-                lapply(
-                    self$weighted_assets_list,
-                    function(x) x[[2]]$ticker
-                ) |> unlist()
-            )
-            na.omit(plot_data)
+            tickers <- lapply(
+                self$weighted_assets_list,
+                function(x) x[[2]]$ticker
+            ) |> unlist()
+            setnames(plot_data, return_cols, tickers)
+            result <- na.omit(plot_data)
+            if (nrow(result) < 2) {
+                return(data.table(
+                    date = as.Date(character()),
+                    setNames(
+                        replicate(length(tickers), numeric(), simplify = FALSE),
+                        tickers
+                    )
+                ))
+            }
+            result
         },
         get_mean_sd_over_time = function(self, time_unit) {
             plot_data <- copy(self$merged_assets)
             plot_data <- plot_data[, .(date, portfolio_return)] |> na.omit()
+            if (nrow(plot_data) == 0) {
+                return(data.table(
+                    date = as.Date(character()),
+                    mean_minus_2_sd_daily_return = numeric(),
+                    mean_daily_return = numeric(),
+                    sd_daily_return = numeric(),
+                    mean_plus_2_sd_daily_return = numeric()
+                ))
+            }
             plot_data[
                 ,
                 portfolio_return := portfolio_return * 100
@@ -409,12 +452,31 @@ Portfolio <- R6Class("Portfolio",
             ] |>
                 na.omit() # Non-trading days for any PF assets are removed
 
+            if (nrow(returns) == 0) {
+                return(list(
+                    returns = returns,
+                    mean = NA_real_,
+                    sd = NA_real_,
+                    normality_test = NA_real_,
+                    normal_return_freqs = data.table(
+                        return = numeric(), frequency = numeric()
+                    ),
+                    plotly_x_bins = list(start = 0, end = 1, size = 0.01),
+                    sharpe_ratio = NA_real_
+                ))
+            }
+
+            n <- nrow(returns)
             mean <- mean(returns[, return])
             sd <- sd(returns[, return])
-            normality_test <- shapiro.test(
-                returns[, return]
-            )$p.value |>
-                signif(digits = 3)
+            normality_test <- if (n >= 3 && n <= 5000) {
+                shapiro.test(
+                    returns[, return]
+                )$p.value |>
+                    signif(digits = 3)
+            } else {
+                NA_real_
+            }
 
             excess_return_sd <- sd(
                 returns[, return] - risk_free_rate /
