@@ -356,8 +356,8 @@ Portfolio <- R6Class("Portfolio",
             comparison_dt[
                 ,
                 drawdown := (
-                    1 - (100 + portfolio_price_pct_change) /
-                        (100 + cummax(portfolio_price_pct_change))
+                    (100 + portfolio_price_pct_change) /
+                        (100 + cummax(portfolio_price_pct_change)) - 1
                 ) * 100 |>
                     signif(3)
             ]
