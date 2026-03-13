@@ -296,10 +296,6 @@ ui <- page_navbar(
             )
         )
     ),
-    nav_panel(
-        title = "Prospective Analysis", # aka pro_ana
-        p("Third page content.")
-    ),
     nav_spacer(),
     nav_menu(
         title = "Links",
