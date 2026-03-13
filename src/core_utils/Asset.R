@@ -41,15 +41,6 @@ Asset <- R6Class("Asset",
             )) {
                 stop("Invalid time_unit")
             }
-            if (
-                !is.null(date_range) &&
-                    !data_type %chin% c("ohlcv", "returns_analysis")
-            ) {
-                stop(paste(
-                    "date_range can only be applied if data_type is 'ohlcv'",
-                    "or 'returns_analysis'"
-                ))
-            }
             if (data_type == "drawdown" && time_unit != "day") {
                 stop("Drawdowns are only be computed on a daily basis")
             }
@@ -75,11 +66,11 @@ Asset <- R6Class("Asset",
                 data_type,
                 "ohlcv" = private$get_ohlcv_data(self, time_unit, date_range),
                 "return_per_time_unit" = private$get_return_per_time_unit_data(
-                    self, time_unit
+                    self, time_unit, date_range
                 ),
-                "drawdown" = private$get_drawdown_data(self),
+                "drawdown" = private$get_drawdown_data(self, date_range),
                 "mean_sd_over_time" = private$get_mean_sd_over_time_data(
-                    self, time_unit
+                    self, time_unit, date_range
                 ),
                 "returns_analysis" =
                     private$analyze_returns(
@@ -204,8 +195,8 @@ Asset <- R6Class("Asset",
                 plot_data
             }
         },
-        get_return_per_time_unit_data = function(self, time_unit) {
-            plot_data <- private$get_ohlcv_data(self, time_unit, NULL)
+        get_return_per_time_unit_data = function(self, time_unit, date_range) {
+            plot_data <- private$get_ohlcv_data(self, time_unit, date_range)
             plot_data[
                 ,
                 .(
@@ -216,8 +207,8 @@ Asset <- R6Class("Asset",
                 )
             ][-1] # Remove the 1st row because it has a NA return
         },
-        get_drawdown_data = function(self) {
-            plot_data <- private$get_ohlcv_data(self, "day", NULL)
+        get_drawdown_data = function(self, date_range) {
+            plot_data <- private$get_ohlcv_data(self, "day", date_range)
             plot_data[
                 ,
                 .(
@@ -230,8 +221,13 @@ Asset <- R6Class("Asset",
                 )
             ][-1] # Remove the 1st row because it has a NA drawdown
         },
-        get_mean_sd_over_time_data = function(self, time_unit) {
+        get_mean_sd_over_time_data = function(self, time_unit, date_range) {
             plot_data <- copy(self$ohlcv)
+            if (!is.null(date_range)) {
+                plot_data <- plot_data[
+                    get(self$colnames_map[["date"]]) %between% date_range
+                ]
+            }
             plot_data[
                 ,
                 self$colnames_map[["return"]] := get(
@@ -301,7 +297,7 @@ Asset <- R6Class("Asset",
             sharpe_ratio <- (
                 (
                     mean - risk_free_rate / n_trading_days_per_year
-                ) / excess_return_sd
+                ) / excess_return_sd * sqrt(n_trading_days_per_year)
             ) |>
                 signif(digits = 3)
 

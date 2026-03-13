@@ -30,6 +30,13 @@ ui <- page_navbar(
                     target = "_blank"
                 )
             ),
+            dateRangeInput(
+                "retro_asset_ana__date_range",
+                "Date Range",
+                start = today() %m-% years(50),
+                end = today(),
+                weekstart = 1
+            ),
             selectInput(
                 "retro_asset_ana__price_plot_type",
                 "Price Plot Type",
@@ -51,13 +58,6 @@ ui <- page_navbar(
                     "Year" = "year"
                 ),
                 selected = "month"
-            ),
-            dateRangeInput(
-                "retro_asset_ana__daily_returns_distrib_date_range",
-                "Daily Returns Distribution Date Range",
-                start = today() %m-% years(50),
-                end = today(),
-                weekstart = 1
             ),
             numericInput(
                 "retro_asset_ana__risk_free_rate",
@@ -243,7 +243,7 @@ ui <- page_navbar(
                                 "Sharpe Ratio",
                                 style = "text-decoration: underline dotted; cursor: help;"
                             ),
-                            "(Mean return - Risk-free rate) / SD(excess returns)"
+                            "(Mean - Rf) / SD(excess) * sqrt(trading days/year)"
                         ),
                         min_height = "75px",
                         value = textOutput(
@@ -294,6 +294,13 @@ ui <- page_navbar(
                     )
                 )
             )
+        ),
+        card(
+            card_header("Per-Asset KPIs"),
+            full_screen = TRUE,
+            fill = FALSE,
+            max_height = "300px",
+            card_body(DTOutput("retro_pf_ana__per_asset_kpis"))
         ),
         card(
             card_header("Portfolio & Assets Performance"),
@@ -368,7 +375,7 @@ ui <- page_navbar(
                                 "Sharpe Ratio",
                                 style = "text-decoration: underline dotted; cursor: help;"
                             ),
-                            "(Mean return - Risk-free rate) / SD(excess returns)"
+                            "(Mean - Rf) / SD(excess) * sqrt(trading days/year)"
                         ),
                         min_height = "75px",
                         value = textOutput(
