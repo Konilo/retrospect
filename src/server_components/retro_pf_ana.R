@@ -52,21 +52,31 @@ output$retro_pf_ana__pf_assets <- renderDT(
 )
 
 retro_pf_ana__pf <- reactive({
-    weighted_assets_list <- apply(
-        X = retro_pf_ana__pf_assets_reac(),
-        MARGIN = 1,
-        FUN = function(row) {
-            c(
-                as.numeric(row[["weight"]]) / 100,
-                Asset$new(row[["ticker"]], "yahoo")
+    tryCatch(
+        {
+            weighted_assets_list <- apply(
+                X = retro_pf_ana__pf_assets_reac(),
+                MARGIN = 1,
+                FUN = function(row) {
+                    c(
+                        as.numeric(row[["weight"]]) / 100,
+                        Asset$new(row[["ticker"]], "yahoo")
+                    )
+                }
             )
+            Portfolio$new(
+                weighted_assets_list,
+                from = input$retro_pf_ana__date_range[1],
+                to = input$retro_pf_ana__date_range[2],
+                risk_free_rate = input$retro_pf_ana__risk_free_rate / 100
+            )
+        },
+        error = function(e) {
+            validate(paste(
+                "Could not load portfolio. Check ticker symbols and",
+                "ensure weights sum to 100%."
+            ))
         }
-    )
-    Portfolio$new(
-        weighted_assets_list,
-        from = input$retro_pf_ana__date_range[1],
-        to = input$retro_pf_ana__date_range[2],
-        risk_free_rate = input$retro_pf_ana__risk_free_rate / 100
     )
 }) |>
     # bindCache(
@@ -84,7 +94,9 @@ retro_pf_ana__kpis <- reactive({
     n_trading_days <- as.integer(input$retro_pf_ana__trading_days_per_year)
 
     if (nrow(returns) < 2) {
-        return(list(cagr = NA_real_, volatility = NA_real_))
+        return(list(
+            cagr = NA_real_, volatility = NA_real_, max_drawdown = NA_real_
+        ))
     }
 
     n_calendar_days <- as.numeric(
@@ -95,10 +107,12 @@ retro_pf_ana__kpis <- reactive({
     cum_value <- cumprod(1 + returns[, portfolio_return])
     cagr <- cum_value[length(cum_value)]^(1 / n_years) - 1
     volatility <- sd(returns[, portfolio_return]) * sqrt(n_trading_days)
+    max_drawdown <- min(cum_value / cummax(cum_value) - 1)
 
     list(
         cagr = (cagr * 100) |> signif(3),
-        volatility = (volatility * 100) |> signif(3)
+        volatility = (volatility * 100) |> signif(3),
+        max_drawdown = (max_drawdown * 100) |> signif(3)
     )
 }) |>
     bindEvent(input$retro_pf_ana__submit)
@@ -110,6 +124,11 @@ output$retro_pf_ana__cagr <- renderText({
 
 output$retro_pf_ana__volatility <- renderText({
     paste(retro_pf_ana__kpis()$volatility, "%")
+}) |>
+    bindEvent(input$retro_pf_ana__submit)
+
+output$retro_pf_ana__max_drawdown <- renderText({
+    paste(retro_pf_ana__kpis()$max_drawdown, "%")
 }) |>
     bindEvent(input$retro_pf_ana__submit)
 
