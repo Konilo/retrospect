@@ -147,6 +147,38 @@ ui <- page_navbar(
     nav_panel(
         title = "Retrospective Asset Analysis", # aka retro_asset_ana
         card(
+            card_header("Key Performance Indicators"),
+            fill = FALSE,
+            card_body(
+                layout_column_wrap(
+                    value_box(
+                        title = tooltip(
+                            span(
+                                "CAGR",
+                                style = "text-decoration: underline dotted; cursor: help;"
+                            ),
+                            "(End / Start)^(1/Years) - 1"
+                        ),
+                        min_height = "75px",
+                        fill = FALSE,
+                        value = textOutput("retro_asset_ana__cagr")
+                    ),
+                    value_box(
+                        title = tooltip(
+                            span(
+                                "Annualized Volatility",
+                                style = "text-decoration: underline dotted; cursor: help;"
+                            ),
+                            "SD(daily returns) * sqrt(trading days/year)"
+                        ),
+                        min_height = "75px",
+                        fill = FALSE,
+                        value = textOutput("retro_asset_ana__volatility")
+                    )
+                )
+            )
+        ),
+        card(
             card_header("Prices"),
             full_screen = TRUE,
             fill = FALSE,
@@ -204,7 +236,13 @@ ui <- page_navbar(
                         )
                     ),
                     value_box(
-                        title = "Sharpe Ratio",
+                        title = tooltip(
+                            span(
+                                "Sharpe Ratio",
+                                style = "text-decoration: underline dotted; cursor: help;"
+                            ),
+                            "(Mean return - Risk-free rate) / SD(excess returns)"
+                        ),
                         min_height = "75px",
                         value = textOutput(
                             "retro_asset_ana__returns_distrib_sharpe_ratio"
@@ -217,6 +255,38 @@ ui <- page_navbar(
     ),
     nav_panel(
         title = "Retrospective Portfolio Analysis", # aka retro_pf_ana
+        card(
+            card_header("Key Performance Indicators"),
+            fill = FALSE,
+            card_body(
+                layout_column_wrap(
+                    value_box(
+                        title = tooltip(
+                            span(
+                                "CAGR",
+                                style = "text-decoration: underline dotted; cursor: help;"
+                            ),
+                            "(End / Start)^(1/Years) - 1"
+                        ),
+                        min_height = "75px",
+                        fill = FALSE,
+                        value = textOutput("retro_pf_ana__cagr")
+                    ),
+                    value_box(
+                        title = tooltip(
+                            span(
+                                "Annualized Volatility",
+                                style = "text-decoration: underline dotted; cursor: help;"
+                            ),
+                            "SD(daily returns) * sqrt(trading days/year)"
+                        ),
+                        min_height = "75px",
+                        fill = FALSE,
+                        value = textOutput("retro_pf_ana__volatility")
+                    )
+                )
+            )
+        ),
         card(
             card_header("Portfolio & Assets Performance"),
             full_screen = TRUE,
@@ -285,7 +355,13 @@ ui <- page_navbar(
                         )
                     ),
                     value_box(
-                        title = "Sharpe Ratio",
+                        title = tooltip(
+                            span(
+                                "Sharpe Ratio",
+                                style = "text-decoration: underline dotted; cursor: help;"
+                            ),
+                            "(Mean return - Risk-free rate) / SD(excess returns)"
+                        ),
                         min_height = "75px",
                         value = textOutput(
                             "retro_pf_ana__returns_distrib_sharpe_ratio"
