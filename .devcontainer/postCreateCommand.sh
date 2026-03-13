@@ -5,9 +5,10 @@ trap 'exit' ERR
 
 echo 'Running postCreateCommand.sh'
 
-# The named volume mounted at ~/.claude is created by Docker as root-owned.
-# Fix ownership so the vscode user can write into it before installing Claude Code.
+# Named volumes are created by Docker as root-owned.
+# Fix ownership so the vscode user can write into them.
 sudo chown -R vscode:vscode /home/vscode/.claude
+sudo chown -R vscode:vscode /home/vscode/.config/gh
 
 # Clean the renv library so stale symlinks from previous builds don't linger.
 # The /renv/cache named volume persists across rebuilds, so restore just re-links
