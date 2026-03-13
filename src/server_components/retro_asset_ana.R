@@ -6,7 +6,16 @@ library(lubridate)
 
 
 retro_asset_ana__asset <- reactive({
-    Asset$new(input$retro_asset_ana__ticker, "yahoo")
+    tryCatch(
+        Asset$new(input$retro_asset_ana__ticker, "yahoo"),
+        error = function(e) {
+            validate(paste0(
+                "Could not load ticker '",
+                input$retro_asset_ana__ticker,
+                "'. Check the ticker symbol and try again."
+            ))
+        }
+    )
 }) |>
     # bindCache(input$retro_asset_ana__ticker) |>
     bindEvent(input$retro_asset_ana__submit)
@@ -28,10 +37,12 @@ retro_asset_ana__kpis <- reactive({
 
     cagr <- (prices[length(prices)] / prices[1])^(1 / n_years) - 1
     volatility <- sd(returns) * sqrt(n_trading_days)
+    max_drawdown <- min(prices / cummax(prices) - 1)
 
     list(
         cagr = (cagr * 100) |> signif(3),
-        volatility = (volatility * 100) |> signif(3)
+        volatility = (volatility * 100) |> signif(3),
+        max_drawdown = (max_drawdown * 100) |> signif(3)
     )
 }) |>
     bindEvent(input$retro_asset_ana__submit)
@@ -43,6 +54,11 @@ output$retro_asset_ana__cagr <- renderText({
 
 output$retro_asset_ana__volatility <- renderText({
     paste(retro_asset_ana__kpis()$volatility, "%")
+}) |>
+    bindEvent(input$retro_asset_ana__submit)
+
+output$retro_asset_ana__max_drawdown <- renderText({
+    paste(retro_asset_ana__kpis()$max_drawdown, "%")
 }) |>
     bindEvent(input$retro_asset_ana__submit)
 

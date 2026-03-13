@@ -139,10 +139,6 @@ ui <- page_navbar(
             ),
             actionButton("retro_pf_ana__submit", "Submit")
         ),
-        conditionalPanel(
-            "input.nav === 'Prospective Analysis'",
-            p("Prospective Analysis sidebar")
-        )
     ),
     nav_panel(
         title = "Retrospective Asset Analysis", # aka retro_asset_ana
@@ -174,6 +170,12 @@ ui <- page_navbar(
                         min_height = "75px",
                         fill = FALSE,
                         value = textOutput("retro_asset_ana__volatility")
+                    ),
+                    value_box(
+                        title = "Max Drawdown",
+                        min_height = "75px",
+                        fill = FALSE,
+                        value = textOutput("retro_asset_ana__max_drawdown")
                     )
                 )
             )
@@ -283,6 +285,12 @@ ui <- page_navbar(
                         min_height = "75px",
                         fill = FALSE,
                         value = textOutput("retro_pf_ana__volatility")
+                    ),
+                    value_box(
+                        title = "Max Drawdown",
+                        min_height = "75px",
+                        fill = FALSE,
+                        value = textOutput("retro_pf_ana__max_drawdown")
                     )
                 )
             )
@@ -372,6 +380,11 @@ ui <- page_navbar(
             )
         )
     ),
+    tags$script(HTML(
+        "$(document).on('shiny:connected', function() {
+            $('#retro_asset_ana__submit').click();
+        });"
+    )),
     nav_spacer(),
     nav_menu(
         title = "Links",
