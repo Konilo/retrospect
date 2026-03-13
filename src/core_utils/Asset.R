@@ -224,7 +224,7 @@ Asset <- R6Class("Asset",
                     date,
                     drawdown = (
                         (
-                            1 - adjusted_close / cummax(adjusted_close)
+                            adjusted_close / cummax(adjusted_close) - 1
                         ) * 100
                     ) |> signif(digits = 3)
                 )
