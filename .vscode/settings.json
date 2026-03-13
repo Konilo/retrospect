@@ -1,0 +1,4 @@
+{
+    "r.rterm.linux": "/usr/local/bin/R",
+    "r.debugger.timeouts.startup": 100000
+}

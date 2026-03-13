@@ -169,3 +169,12 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Drafts and notes
+drafts.py
+notes.md
+TODO.md
+
+# R
+.Rhistory
+.RData
