@@ -4,7 +4,6 @@
 # Usage: Rscript tests/generate_fixtures.R
 
 library(data.table)
-setwd("/workspaces/modern-portfolio-theory")
 source("src/core_utils/Asset.R")
 
 # Fetch a small window of real data for two assets

@@ -55,7 +55,7 @@ card_header_with_download <- function(title, download_id) {
 }
 
 ui <- page_navbar(
-    title = "Asset Analysis",
+    title = "Retrospect",
     id = "nav",
     navbar_options = navbar_options(
         bg = "#000000",
@@ -409,7 +409,7 @@ ui <- page_navbar(
         nav_item(
             tags$a(
                 "GitHub",
-                href = "https://github.com/Konilo/modern-portfolio-theory",
+                href = "https://github.com/Konilo/retrospect",
                 target = "_blank"
             )
         )
