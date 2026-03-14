@@ -36,14 +36,22 @@ retro_asset_ana__kpis <- reactive({
     )
     n_years <- n_calendar_days / 365.25
 
+    risk_free_rate <- input$retro_asset_ana__risk_free_rate / 100
+
     cagr <- (prices[length(prices)] / prices[1])^(1 / n_years) - 1
     volatility <- sd(returns) * sqrt(n_trading_days)
     max_drawdown <- min(prices / cummax(prices) - 1)
+    excess_return_sd <- sd(returns - risk_free_rate / n_trading_days)
+    sharpe_ratio <- (
+        (mean(returns) - risk_free_rate / n_trading_days) /
+            excess_return_sd * sqrt(n_trading_days)
+    )
 
     list(
         cagr = (cagr * 100) |> signif(3),
         volatility = (volatility * 100) |> signif(3),
-        max_drawdown = (max_drawdown * 100) |> signif(3)
+        max_drawdown = (max_drawdown * 100) |> signif(3),
+        sharpe_ratio = sharpe_ratio |> signif(3)
     )
 }) |>
     bindEvent(input$retro_asset_ana__submit)
@@ -60,6 +68,11 @@ output$retro_asset_ana__volatility <- renderText({
 
 output$retro_asset_ana__max_drawdown <- renderText({
     paste(retro_asset_ana__kpis()$max_drawdown, "%")
+}) |>
+    bindEvent(input$retro_asset_ana__submit)
+
+output$retro_asset_ana__sharpe_ratio <- renderText({
+    retro_asset_ana__kpis()$sharpe_ratio
 }) |>
     bindEvent(input$retro_asset_ana__submit)
 
@@ -157,78 +170,6 @@ output$retro_asset_ana__drawdown_plot <- renderPlotly({
             yaxis = list(title = "Drawdown (%)"),
             hovermode = "x"
         )
-}) |>
-    bindEvent(input$retro_asset_ana__submit)
-
-retro_asset_ana__returns_analysis <- reactive({
-    retro_asset_ana__asset()$get_prepared_data(
-        "returns_analysis",
-        "day",
-        input$retro_asset_ana__date_range,
-        input$retro_asset_ana__risk_free_rate,
-        as.integer(input$retro_asset_ana__trading_days_per_year)
-    )
-}) |>
-    bindCache(
-        input$retro_asset_ana__ticker,
-        input$retro_asset_ana__date_range,
-        input$retro_asset_ana__risk_free_rate,
-        input$retro_asset_ana__trading_days_per_year
-    ) |>
-    bindEvent(input$retro_asset_ana__submit)
-
-output$retro_asset_ana__returns_distrib_plot <- renderPlotly({
-    plot_ly(
-        data = retro_asset_ana__returns_analysis()$returns,
-        type = "histogram",
-        x = ~return,
-        name = "Actual",
-        histnorm = "percent",
-        xbins = retro_asset_ana__returns_analysis()$plotly_x_bins
-    ) |>
-        add_trace(
-            data = retro_asset_ana__returns_analysis()$normal_return_freqs,
-            x = ~return,
-            y = ~frequency,
-            name = "Normal",
-            type = "scatter",
-            mode = "lines+markers",
-            histnorm = NULL,
-            xbins = NULL
-        ) |>
-        layout(
-            title = paste0(
-                retro_asset_ana__asset()$ticker, " (",
-                retro_asset_ana__returns_analysis()$returns[, min(date)],
-                " to ",
-                retro_asset_ana__returns_analysis()$returns[, max(date)],
-                ", N = ", retro_asset_ana__returns_analysis()$returns[, .N], ")"
-            ),
-            xaxis = list(title = "Daily Return (%)"),
-            yaxis = list(title = "Frequency (%)"),
-            barmode = "overlay",
-            hovermode = "x"
-        )
-}) |>
-    bindEvent(input$retro_asset_ana__submit)
-
-output$retro_asset_ana__returns_distrib_mean <- renderText({
-    paste(retro_asset_ana__returns_analysis()$mean, "%")
-}) |>
-    bindEvent(input$retro_asset_ana__submit)
-
-output$retro_asset_ana__returns_distrib_sd <- renderText({
-    paste(retro_asset_ana__returns_analysis()$sd, "% points")
-}) |>
-    bindEvent(input$retro_asset_ana__submit)
-
-output$retro_asset_ana__returns_distrib_normality_test <- renderText({
-    retro_asset_ana__returns_analysis()$normality_test
-}) |>
-    bindEvent(input$retro_asset_ana__submit)
-
-output$retro_asset_ana__returns_distrib_sharpe_ratio <- renderText({
-    retro_asset_ana__returns_analysis()$sharpe_ratio
 }) |>
     bindEvent(input$retro_asset_ana__submit)
 
