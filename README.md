@@ -6,16 +6,16 @@ Many widely-available tools provide metrics about a ticker or a portfolio (e.g.,
 - not too much complexity for a simple exploratory use case,
 - and which is free.
 
-So i built it myself.
+So I built it myself.
 
 
 ## Features
 
 ### Retrospective Asset Analysis
 - **KPIs**: CAGR, annualized volatility, max drawdown, Sharpe ratio
-- **Price chart**: candlestick or closing price
-- **Return per time unit**: bar chart of returns aggregated by chosen period
-- **Drawdown chart**: daily drawdown from peak over time
+- **Classic price chart**
+- **Return per time unit**
+- **Drawdown chart**
 - **Annualized return & volatility per time unit**: mean return vs. volatility with ±2σ band
 
 ### Retrospective Portfolio Analysis
@@ -46,12 +46,21 @@ docker compose up
 
 ## Architecture
 
-Mermaid of the core logic
-- Yahoo Finance
-- Asset class, caching
-- Portfolio class
-- BE/server, components
-- FE/ui, plots
+## Architecture
+
+```mermaid
+flowchart TD
+    YF[Yahoo Finance]
+
+    YF -->|quantmod::getSymbols| A["Asset (R6)\nfetches & stores daily OHLCV\nexposes get_prepared_data()"]
+    A -->|"list of weighted Assets"| P["Portfolio (R6)\nmerges assets, computes\nweighted portfolio returns"]
+
+    A --> SAA["retro_asset_ana.R\n(server component)"]
+    P --> SPA["retro_pf_ana.R\n(server component)"]
+
+    SAA --> TAA["Asset Analysis tab\n(KPIs + Plotly charts)"]
+    SPA --> TPA["Portfolio Analysis tab\n(KPIs + Plotly charts)"]
+```
 
 
 ## Development setup
