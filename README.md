@@ -32,6 +32,14 @@ So I built it myself.
 - Shareable URLs via query parameters
 - Data from [Yahoo Finance](https://finance.yahoo.com)
 
+### Screenshots
+
+![Landing page](assets/screenshots/landing.png)
+
+![Portfolio Assets Correlation SPLOM](assets/screenshots/SPLOM.png)
+
+![Portfolio Annualized Return & Volatility Per Time Unit](assets/screenshots/ret_vol.png)
+
 
 ## Quick start
 
