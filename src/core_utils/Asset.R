@@ -44,15 +44,17 @@ Asset <- R6Class("Asset",
             if (data_type == "drawdown" && time_unit != "day") {
                 stop("Drawdowns are only be computed on a daily basis")
             }
-            if (data_type == "returns_analysis") {
-                if (!is.numeric(risk_free_rate) || risk_free_rate < 0) {
-                    stop("Invalid risk_free_rate")
-                }
+            if (data_type %in% c("returns_analysis", "mean_sd_over_time")) {
                 if (
                     !is.numeric(n_trading_days_per_year) ||
                         n_trading_days_per_year <= 0
                 ) {
                     stop("Invalid n_trading_days_per_year")
+                }
+            }
+            if (data_type == "returns_analysis") {
+                if (!is.numeric(risk_free_rate) || risk_free_rate < 0) {
+                    stop("Invalid risk_free_rate")
                 }
                 if (time_unit != "day") {
                     stop(paste(
@@ -70,7 +72,7 @@ Asset <- R6Class("Asset",
                 ),
                 "drawdown" = private$get_drawdown_data(self, date_range),
                 "mean_sd_over_time" = private$get_mean_sd_over_time_data(
-                    self, time_unit, date_range
+                    self, time_unit, date_range, n_trading_days_per_year
                 ),
                 "returns_analysis" =
                     private$analyze_returns(
@@ -221,7 +223,9 @@ Asset <- R6Class("Asset",
                 )
             ][-1] # Remove the 1st row because it has a NA drawdown
         },
-        get_mean_sd_over_time_data = function(self, time_unit, date_range) {
+        get_mean_sd_over_time_data = function(
+            self, time_unit, date_range, n_trading_days_per_year
+        ) {
             plot_data <- copy(self$ohlcv)
             if (!is.null(date_range)) {
                 plot_data <- plot_data[
@@ -237,10 +241,12 @@ Asset <- R6Class("Asset",
             plot_data <- plot_data[
                 ,
                 .(
-                    mean_daily_return = mean(
+                    mean_ann_return = mean(
                         get(self$colnames_map[["return"]])
-                    ),
-                    sd_daily_return = sd(get(self$colnames_map[["return"]]))
+                    ) * n_trading_days_per_year,
+                    ann_volatility = sd(
+                        get(self$colnames_map[["return"]])
+                    ) * sqrt(n_trading_days_per_year)
                 ),
                 by = .(
                     date = floor_date(
@@ -254,12 +260,10 @@ Asset <- R6Class("Asset",
                 ,
                 .(
                     date,
-                    mean_minus_2_sd_daily_return = mean_daily_return - 2 *
-                        sd_daily_return,
-                    mean_daily_return,
-                    sd_daily_return,
-                    mean_plus_2_sd_daily_return = mean_daily_return + 2 *
-                        sd_daily_return
+                    mean_minus_2_sd = mean_ann_return - 2 * ann_volatility,
+                    mean_ann_return,
+                    ann_volatility,
+                    mean_plus_2_sd = mean_ann_return + 2 * ann_volatility
                 )
             ]
         },

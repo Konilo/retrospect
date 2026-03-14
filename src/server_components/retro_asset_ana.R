@@ -243,33 +243,45 @@ output$retro_asset_ana__returns_distrib_per_time_unit_plot <- renderPlotly({
             "week",
             input$retro_asset_ana__time_unit
         ),
-        input$retro_asset_ana__date_range
+        input$retro_asset_ana__date_range,
+        n_trading_days_per_year = as.integer(
+            input$retro_asset_ana__trading_days_per_year
+        )
     )
-    plot_ly(
-        data = plot_data,
-        type = "scatter",
-        mode = "lines",
-        x = ~date,
-        y = ~mean_plus_2_sd_daily_return,
-        name = "Mean Daily Return + 2 Std. Dev."
-    ) |>
+    plot_ly(data = plot_data, x = ~date) |>
         add_trace(
-            y = ~sd_daily_return,
-            name = "Daily Returns Std. Dev."
+            y = ~mean_plus_2_sd,
+            type = "scatter", mode = "lines",
+            line = list(width = 0),
+            name = "Mean + 2 Vol.",
+            showlegend = FALSE
         ) |>
         add_trace(
-            y = ~mean_daily_return,
-            name = "Mean Daily Return"
+            y = ~mean_minus_2_sd,
+            type = "scatter", mode = "lines",
+            fill = "tonexty",
+            fillcolor = "rgba(68,119,170,0.15)",
+            line = list(width = 0),
+            name = "Mean \u00b1 2 Vol."
         ) |>
         add_trace(
-            y = ~mean_minus_2_sd_daily_return,
-            name = "Mean Daily Return - 2 Std. Dev."
+            y = ~mean_ann_return,
+            type = "scatter", mode = "lines",
+            line = list(color = "rgb(68,119,170)", width = 2),
+            name = "Ann. Mean Return"
+        ) |>
+        add_trace(
+            y = ~ann_volatility,
+            type = "scatter", mode = "lines",
+            line = list(
+                color = "rgb(221,132,56)", width = 2, dash = "dash"
+            ),
+            name = "Ann. Volatility"
         ) |>
         layout(
             title = retro_asset_ana__asset()$ticker,
             xaxis = list(title = ""),
-            yaxis = list(title = "Daily Return (%)"),
-            barmode = "overlay",
+            yaxis = list(title = "Annualized (%)"),
             hovermode = "x"
         )
 }) |>
