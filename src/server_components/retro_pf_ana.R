@@ -286,6 +286,52 @@ output$retro_pf_ana__assets_cor_splom <- renderPlotly({
         ggplotly()
 })
 
+output$retro_pf_ana__dl_assets_price_comp <- downloadHandler(
+    filename = function() "portfolio_assets_performance.csv",
+    content = function(file) {
+        data <- retro_pf_ana__pf()$get_prepared_data(
+            "assets_price_comparison", "day"
+        )
+        fwrite(data, file)
+    }
+)
+
+output$retro_pf_ana__dl_return_per_time_unit <- downloadHandler(
+    filename = function() "portfolio_return_per_time_unit.csv",
+    content = function(file) {
+        data <- retro_pf_ana__pf()$get_prepared_data(
+            "return_per_time_unit", input$retro_pf_ana__time_unit
+        )
+        fwrite(data, file)
+    }
+)
+
+output$retro_pf_ana__dl_drawdown <- downloadHandler(
+    filename = function() "portfolio_drawdown.csv",
+    content = function(file) {
+        data <- retro_pf_ana__pf()$get_prepared_data("drawdown", "day")
+        fwrite(data, file)
+    }
+)
+
+output$retro_pf_ana__dl_ann_vol <- downloadHandler(
+    filename = function() "portfolio_ann_vol_per_time_unit.csv",
+    content = function(file) {
+        data <- retro_pf_ana__pf()$get_prepared_data(
+            "mean_sd_over_time",
+            ifelse(
+                input$retro_pf_ana__time_unit == "day",
+                "week",
+                input$retro_pf_ana__time_unit
+            ),
+            n_trading_days_per_year = as.integer(
+                input$retro_pf_ana__trading_days_per_year
+            )
+        )
+        fwrite(data, file)
+    }
+)
+
 output$retro_pf_ana__returns_distrib_per_time_unit_plot <- renderPlotly({
     plot_data <- retro_pf_ana__pf()$get_prepared_data(
         "mean_sd_over_time",

@@ -42,6 +42,18 @@ ann_vol_chart_explanation <- tags$details(
     )
 )
 
+card_header_with_download <- function(title, download_id) {
+    card_header(
+        class = "d-flex justify-content-between align-items-center",
+        span(title),
+        downloadLink(
+            download_id,
+            label = icon("download"),
+            style = "color: #6c757d; font-size: 0.85em;"
+        )
+    )
+}
+
 ui <- page_navbar(
     title = "Asset Analysis",
     id = "nav",
@@ -230,13 +242,18 @@ ui <- page_navbar(
             )
         ),
         card(
-            card_header("Prices"),
+            card_header_with_download(
+                "Prices", "retro_asset_ana__dl_prices"
+            ),
             full_screen = TRUE,
             fill = FALSE,
             card_body(plotlyOutput("retro_asset_ana__price_plot"))
         ),
         card(
-            card_header("Return Per Time Unit"),
+            card_header_with_download(
+                "Return Per Time Unit",
+                "retro_asset_ana__dl_return_per_time_unit"
+            ),
             full_screen = TRUE,
             fill = FALSE,
             card_body(plotlyOutput(
@@ -244,13 +261,19 @@ ui <- page_navbar(
             ))
         ),
         card(
-            card_header("Daily Close Price Drawdowns"),
+            card_header_with_download(
+                "Daily Close Price Drawdowns",
+                "retro_asset_ana__dl_drawdown"
+            ),
             full_screen = TRUE,
             fill = FALSE,
             card_body(plotlyOutput("retro_asset_ana__drawdown_plot"))
         ),
         card(
-            card_header("Annualized Return & Volatility Per Time Unit"),
+            card_header_with_download(
+                "Annualized Return & Volatility Per Time Unit",
+                "retro_asset_ana__dl_ann_vol"
+            ),
             full_screen = TRUE,
             fill = FALSE,
             card_body(
@@ -321,7 +344,10 @@ ui <- page_navbar(
             card_body(DTOutput("retro_pf_ana__per_asset_kpis"))
         ),
         card(
-            card_header("Portfolio & Assets Performance"),
+            card_header_with_download(
+                "Portfolio & Assets Performance",
+                "retro_pf_ana__dl_assets_price_comp"
+            ),
             full_screen = TRUE,
             fill = FALSE,
             card_body(
@@ -329,7 +355,10 @@ ui <- page_navbar(
             )
         ),
         card(
-            card_header("Portfolio Return Per Time Unit"),
+            card_header_with_download(
+                "Portfolio Return Per Time Unit",
+                "retro_pf_ana__dl_return_per_time_unit"
+            ),
             full_screen = TRUE,
             fill = FALSE,
             card_body(
@@ -337,7 +366,10 @@ ui <- page_navbar(
             )
         ),
         card(
-            card_header("Portfolio Drawdowns"),
+            card_header_with_download(
+                "Portfolio Drawdowns",
+                "retro_pf_ana__dl_drawdown"
+            ),
             full_screen = TRUE,
             fill = FALSE,
             card_body(plotlyOutput("retro_pf_ana__drawdown_plot"))
@@ -351,7 +383,10 @@ ui <- page_navbar(
             )
         ),
         card(
-            card_header("Portfolio Annualized Return & Volatility Per Time Unit"),
+            card_header_with_download(
+                "Portfolio Annualized Return & Volatility Per Time Unit",
+                "retro_pf_ana__dl_ann_vol"
+            ),
             full_screen = TRUE,
             fill = FALSE,
             card_body(
