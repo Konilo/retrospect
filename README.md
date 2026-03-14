@@ -94,6 +94,6 @@ flowchart TD
 
 ## Note
 
-The bulk of the backend and frontend logic was coded by hand to practice high quality R code and R Shiny dashboarding, R being often sloppy (albeit accurate) when used for statistics and research.
+The bulk of the backend and frontend logic was coded by hand to practice clean R coding and R Shiny dashboarding, code quality and efficiency not being the priority in my initial background in research.
 
 I then came back with Claude Code to iterate on those fundations, this time with a product objective.
