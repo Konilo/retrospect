@@ -46,20 +46,18 @@ docker compose up
 
 ## Architecture
 
-## Architecture
-
 ```mermaid
 flowchart TD
     YF[Yahoo Finance]
 
-    YF -->|quantmod::getSymbols| A["Asset (R6)\nfetches & stores daily OHLCV\nexposes get_prepared_data()"]
-    A -->|"list of weighted Assets"| P["Portfolio (R6)\nmerges assets, computes\nweighted portfolio returns"]
+    YF -->|quantmod::getSymbols| A["Asset (R6) fetches & stores daily OHLCV exposes get_prepared_data()"]
+    A -->|"list of weighted Assets"| P["Portfolio (R6) merges assets, computes weighted portfolio returns"]
 
-    A --> SAA["retro_asset_ana.R\n(server component)"]
-    P --> SPA["retro_pf_ana.R\n(server component)"]
+    A --> SAA["retro_asset_ana.R (server component)"]
+    P --> SPA["retro_pf_ana.R (server component)"]
 
-    SAA --> TAA["Asset Analysis tab\n(KPIs + Plotly charts)"]
-    SPA --> TPA["Portfolio Analysis tab\n(KPIs + Plotly charts)"]
+    SAA --> TAA["Asset Analysis tab (KPIs + Plotly charts)"]
+    SPA --> TPA["Portfolio Analysis tab (KPIs + Plotly charts)"]
 ```
 
 
