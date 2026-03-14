@@ -70,15 +70,17 @@ Portfolio <- R6Class("Portfolio",
             ) {
                 stop("Only 'day' time_unit is allowed for this data_type")
             }
-            if (data_type == "returns_analysis") {
-                if (!is.numeric(risk_free_rate) || risk_free_rate < 0) {
-                    stop("Invalid risk_free_rate")
-                }
+            if (data_type %in% c("returns_analysis", "mean_sd_over_time")) {
                 if (
                     !is.numeric(n_trading_days_per_year) ||
                         n_trading_days_per_year <= 0
                 ) {
                     stop("Invalid n_trading_days_per_year")
+                }
+            }
+            if (data_type == "returns_analysis") {
+                if (!is.numeric(risk_free_rate) || risk_free_rate < 0) {
+                    stop("Invalid risk_free_rate")
                 }
                 if (time_unit != "day") {
                     stop(paste(
@@ -97,7 +99,9 @@ Portfolio <- R6Class("Portfolio",
                 "assets_returns" =
                     private$get_assets_returns(self),
                 "mean_sd_over_time" =
-                    private$get_mean_sd_over_time(self, time_unit),
+                    private$get_mean_sd_over_time(
+                        self, time_unit, n_trading_days_per_year
+                    ),
                 "returns_analysis" =
                     private$analyze_returns(
                         self,
@@ -393,16 +397,18 @@ Portfolio <- R6Class("Portfolio",
             }
             result
         },
-        get_mean_sd_over_time = function(self, time_unit) {
+        get_mean_sd_over_time = function(
+            self, time_unit, n_trading_days_per_year
+        ) {
             plot_data <- copy(self$merged_assets)
             plot_data <- plot_data[, .(date, portfolio_return)] |> na.omit()
             if (nrow(plot_data) == 0) {
                 return(data.table(
                     date = as.Date(character()),
-                    mean_minus_2_sd_daily_return = numeric(),
-                    mean_daily_return = numeric(),
-                    sd_daily_return = numeric(),
-                    mean_plus_2_sd_daily_return = numeric()
+                    mean_minus_2_sd = numeric(),
+                    mean_ann_return = numeric(),
+                    ann_volatility = numeric(),
+                    mean_plus_2_sd = numeric()
                 ))
             }
             plot_data[
@@ -412,8 +418,10 @@ Portfolio <- R6Class("Portfolio",
             plot_data <- plot_data[
                 ,
                 .(
-                    mean_daily_return = mean(portfolio_return),
-                    sd_daily_return = sd(portfolio_return)
+                    mean_ann_return = mean(portfolio_return) *
+                        n_trading_days_per_year,
+                    ann_volatility = sd(portfolio_return) *
+                        sqrt(n_trading_days_per_year)
                 ),
                 by = .(
                     date = floor_date(
@@ -429,12 +437,10 @@ Portfolio <- R6Class("Portfolio",
                 ,
                 .(
                     date,
-                    mean_minus_2_sd_daily_return = mean_daily_return - 2 *
-                        sd_daily_return,
-                    mean_daily_return,
-                    sd_daily_return,
-                    mean_plus_2_sd_daily_return = mean_daily_return + 2 *
-                        sd_daily_return
+                    mean_minus_2_sd = mean_ann_return - 2 * ann_volatility,
+                    mean_ann_return,
+                    ann_volatility,
+                    mean_plus_2_sd = mean_ann_return + 2 * ann_volatility
                 )
             ]
         },

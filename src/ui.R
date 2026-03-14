@@ -4,6 +4,43 @@ library(plotly)
 library(lubridate)
 library(DT)
 
+ann_vol_chart_explanation <- tags$details(
+    tags$summary(
+        style = "cursor: pointer; color: #6c757d; font-size: 0.85em; margin-top: 8px;",
+        "How to read this chart"
+    ),
+    tags$div(
+        style = "font-size: 0.85em; color: #6c757d; margin-top: 6px; line-height: 1.5;",
+        tags$p(
+            "Daily returns within each time unit are used to",
+            "compute the following annualized metrics:"
+        ),
+        tags$ul(
+            tags$li(
+                tags$strong("Ann. Mean Return"),
+                "(solid blue): the annualized equivalent of the",
+                "average daily return for this time unit."
+            ),
+            tags$li(
+                tags$strong("Ann. Volatility"),
+                "(dashed orange): the standard deviation of daily",
+                "returns for this time unit, scaled to a year."
+            ),
+            tags$li(
+                tags$strong("Mean \u00b1 2 Vol. band"),
+                "(shaded blue): assuming normally distributed",
+                "returns, ~95.45% of daily returns (annualized)",
+                "fall within this range. A wider band signals a",
+                "more uncertain period."
+            )
+        ),
+        tags$p(
+            "Note: annualization assumes returns scale linearly",
+            "(additively), which is an approximation \u2014 in",
+            "practice, returns compound."
+        )
+    )
+)
 
 ui <- page_navbar(
     title = "Asset Analysis",
@@ -201,12 +238,15 @@ ui <- page_navbar(
             card_body(plotlyOutput("retro_asset_ana__drawdown_plot"))
         ),
         card(
-            card_header("Daily Returns Distribution Per Time Unit"),
+            card_header("Annualized Return & Volatility Per Time Unit"),
             full_screen = TRUE,
             fill = FALSE,
-            card_body(plotlyOutput(
-                "retro_asset_ana__returns_distrib_per_time_unit_plot"
-            ))
+            card_body(
+                plotlyOutput(
+                    "retro_asset_ana__returns_distrib_per_time_unit_plot"
+                ),
+                ann_vol_chart_explanation
+            )
         ),
         card(
             card_header("Daily Returns Detailed Analysis"),
@@ -333,12 +373,15 @@ ui <- page_navbar(
             )
         ),
         card(
-            card_header("Portfolio Daily Returns Distribution Per Time Unit"),
+            card_header("Portfolio Annualized Return & Volatility Per Time Unit"),
             full_screen = TRUE,
             fill = FALSE,
-            card_body(plotlyOutput(
-                "retro_pf_ana__returns_distrib_per_time_unit_plot"
-            ))
+            card_body(
+                plotlyOutput(
+                    "retro_pf_ana__returns_distrib_per_time_unit_plot"
+                ),
+                ann_vol_chart_explanation
+            )
         ),
         card(
             card_header("Portfolio Daily Returns Detailed Analysis"),
