@@ -180,3 +180,5 @@ SimPortfolio.R
 # R
 .Rhistory
 .RData
+
+*.local.json
