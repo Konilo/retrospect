@@ -1,3 +1,11 @@
-renv/library/
 .devcontainer/
+.github/
+.vscode/
+.claude/
+.git/
+tests/
+renv/library/
+renv/staging/
+renv/cellar/
+renv/local/
 bin/
