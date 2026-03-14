@@ -173,6 +173,67 @@ output$retro_asset_ana__drawdown_plot <- renderPlotly({
 }) |>
     bindEvent(input$retro_asset_ana__submit)
 
+output$retro_asset_ana__dl_prices <- downloadHandler(
+    filename = function() {
+        paste0(input$retro_asset_ana__ticker, "_prices.csv")
+    },
+    content = function(file) {
+        data <- retro_asset_ana__asset()$get_prepared_data(
+            "ohlcv",
+            input$retro_asset_ana__time_unit,
+            input$retro_asset_ana__date_range
+        )
+        fwrite(data, file)
+    }
+)
+
+output$retro_asset_ana__dl_return_per_time_unit <- downloadHandler(
+    filename = function() {
+        paste0(input$retro_asset_ana__ticker, "_return_per_time_unit.csv")
+    },
+    content = function(file) {
+        data <- retro_asset_ana__asset()$get_prepared_data(
+            "return_per_time_unit",
+            input$retro_asset_ana__time_unit,
+            input$retro_asset_ana__date_range
+        )
+        fwrite(data, file)
+    }
+)
+
+output$retro_asset_ana__dl_drawdown <- downloadHandler(
+    filename = function() {
+        paste0(input$retro_asset_ana__ticker, "_drawdown.csv")
+    },
+    content = function(file) {
+        data <- retro_asset_ana__asset()$get_prepared_data(
+            "drawdown", "day", input$retro_asset_ana__date_range
+        )
+        fwrite(data, file)
+    }
+)
+
+output$retro_asset_ana__dl_ann_vol <- downloadHandler(
+    filename = function() {
+        paste0(input$retro_asset_ana__ticker, "_ann_vol_per_time_unit.csv")
+    },
+    content = function(file) {
+        data <- retro_asset_ana__asset()$get_prepared_data(
+            "mean_sd_over_time",
+            ifelse(
+                input$retro_asset_ana__time_unit == "day",
+                "week",
+                input$retro_asset_ana__time_unit
+            ),
+            input$retro_asset_ana__date_range,
+            n_trading_days_per_year = as.integer(
+                input$retro_asset_ana__trading_days_per_year
+            )
+        )
+        fwrite(data, file)
+    }
+)
+
 output$retro_asset_ana__returns_distrib_per_time_unit_plot <- renderPlotly({
     plot_data <- retro_asset_ana__asset()$get_prepared_data(
         "mean_sd_over_time",
