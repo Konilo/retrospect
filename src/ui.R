@@ -213,6 +213,18 @@ ui <- page_navbar(
                         min_height = "75px",
                         fill = FALSE,
                         value = textOutput("retro_asset_ana__max_drawdown")
+                    ),
+                    value_box(
+                        title = tooltip(
+                            span(
+                                "Sharpe Ratio",
+                                style = "text-decoration: underline dotted; cursor: help;"
+                            ),
+                            "(Mean - Rf) / SD(excess) * sqrt(trading days/year)"
+                        ),
+                        min_height = "75px",
+                        fill = FALSE,
+                        value = textOutput("retro_asset_ana__sharpe_ratio")
                     )
                 )
             )
@@ -248,52 +260,6 @@ ui <- page_navbar(
                 ann_vol_chart_explanation
             )
         ),
-        card(
-            card_header("Daily Returns Detailed Analysis"),
-            full_screen = TRUE,
-            fill = FALSE,
-            card_body(
-                layout_column_wrap(
-                    value_box(
-                        title = "Mean",
-                        min_height = "75px",
-                        fill = FALSE,
-                        value = textOutput(
-                            "retro_asset_ana__returns_distrib_mean"
-                        )
-                    ),
-                    value_box(
-                        title = "Standard Deviation",
-                        min_height = "75px",
-                        fill = FALSE,
-                        value = textOutput(
-                            "retro_asset_ana__returns_distrib_sd"
-                        )
-                    ),
-                    value_box(
-                        title = "Shapiro-Wilk Normality Test",
-                        min_height = "75px",
-                        value = textOutput(
-                            "retro_asset_ana__returns_distrib_normality_test"
-                        )
-                    ),
-                    value_box(
-                        title = tooltip(
-                            span(
-                                "Sharpe Ratio",
-                                style = "text-decoration: underline dotted; cursor: help;"
-                            ),
-                            "(Mean - Rf) / SD(excess) * sqrt(trading days/year)"
-                        ),
-                        min_height = "75px",
-                        value = textOutput(
-                            "retro_asset_ana__returns_distrib_sharpe_ratio"
-                        )
-                    )
-                ),
-                plotlyOutput("retro_asset_ana__returns_distrib_plot")
-            )
-        )
     ),
     nav_panel(
         title = "Retrospective Portfolio Analysis", # aka retro_pf_ana
@@ -331,6 +297,18 @@ ui <- page_navbar(
                         min_height = "75px",
                         fill = FALSE,
                         value = textOutput("retro_pf_ana__max_drawdown")
+                    ),
+                    value_box(
+                        title = tooltip(
+                            span(
+                                "Sharpe Ratio",
+                                style = "text-decoration: underline dotted; cursor: help;"
+                            ),
+                            "(Mean - Rf) / SD(excess) * sqrt(trading days/year)"
+                        ),
+                        min_height = "75px",
+                        fill = FALSE,
+                        value = textOutput("retro_pf_ana__sharpe_ratio")
                     )
                 )
             )
@@ -383,52 +361,6 @@ ui <- page_navbar(
                 ann_vol_chart_explanation
             )
         ),
-        card(
-            card_header("Portfolio Daily Returns Detailed Analysis"),
-            full_screen = TRUE,
-            fill = FALSE,
-            card_body(
-                layout_column_wrap(
-                    value_box(
-                        title = "Mean",
-                        min_height = "75px",
-                        fill = FALSE,
-                        value = textOutput(
-                            "retro_pf_ana__returns_distrib_mean"
-                        )
-                    ),
-                    value_box(
-                        title = "Standard Deviation",
-                        min_height = "75px",
-                        fill = FALSE,
-                        value = textOutput(
-                            "retro_pf_ana__returns_distrib_sd"
-                        )
-                    ),
-                    value_box(
-                        title = "Shapiro-Wilk Normality Test",
-                        min_height = "75px",
-                        value = textOutput(
-                            "retro_pf_ana__returns_distrib_normality_test"
-                        )
-                    ),
-                    value_box(
-                        title = tooltip(
-                            span(
-                                "Sharpe Ratio",
-                                style = "text-decoration: underline dotted; cursor: help;"
-                            ),
-                            "(Mean - Rf) / SD(excess) * sqrt(trading days/year)"
-                        ),
-                        min_height = "75px",
-                        value = textOutput(
-                            "retro_pf_ana__returns_distrib_sharpe_ratio"
-                        )
-                    )
-                ),
-                plotlyOutput("retro_pf_ana__returns_distrib_plot")
-            )
-        )
     ),
     tags$script(HTML(
         "$(document).on('shiny:connected', function() {
